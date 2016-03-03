@@ -250,3 +250,8 @@ _Pvt_Extensions
 
 # generated docs
 docs/output
+
+# Vim swap files
+*.swp
+*.swo
+
