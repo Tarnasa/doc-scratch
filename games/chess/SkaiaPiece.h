@@ -2,7 +2,7 @@
 
 // This class is for intermediate calculations using pieces
 
-#include "common.h"
+#include "Skaia.h"
 
 namespace Skaia
 {
@@ -12,9 +12,9 @@ namespace Skaia
             Position pos;
             Type type;
             Color color; // 0=white, 1=black
+            size_t special;
 
-            Piece(size_t rank, size_t file, Type type, Color color);
-            Piece(const Position& pos, Type type, Color color);
+            Piece(const Position& pos, Type type, Color color, size_t special = 0) pos(pos), type(type), color(color), special(special) {}
     }
 }
 

@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "common.h"
+#include "Skaia.h"
 
 namespace Skaia
 {
@@ -23,6 +23,7 @@ namespace Skaia
             }
     };
 
+    /*
     class SmallAction
     {
         public:
@@ -30,7 +31,7 @@ namespace Skaia
             std::bitset<16> data;
 
             // The important stuff
-            Action(size_t from_rank, size_t from_file, size_t to_rank, size_t to_file, size_t promotion=4) :
+            SmallAction(size_t from_rank, size_t from_file, size_t to_rank, size_t to_file, size_t promotion=4) :
                 data(from_rank | from_file << 3 | to_rank << 6 | to_file << 9 | promotion << 12) {}
 
             size_t get_from_rank() const { return data & 0b111; }
@@ -44,15 +45,10 @@ namespace Skaia
                 return Action(get_from_rank(), get_from_file(), get_to_rank(), get_to_file(), get_promotion());
             }
 
-            std::string get_promotion_name() const
-            {
-                static const std::vector<std::string>> names = {"Pawn", "Rook", "Knight", "Bishop", "Queen"};
-                return names[get_promotion()];
-            }
-
             // The needed but not too important stuff
-            Action(const Action& action) = default;
-            Action& operator=(const Action& action) = default;
-    }
+            SmallAction(const SmallAction& action) = default;
+            SmallAction& operator=(const SmallAction& action) = default;
+    };
+    */
 }
 

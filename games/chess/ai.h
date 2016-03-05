@@ -12,6 +12,7 @@
 
 #include "../../joueur/baseAI.h"
 
+#include "SkaiaState.h"
 
 /// <summary>
 /// This the header file for where you build your AI for the Chess game.
@@ -19,6 +20,11 @@
 class Chess::AI : public Joueur::BaseAI
 {
     public:
+        /// Custom stuffs
+        Skaia::State state;
+
+
+
         /// <summary>
         /// This is a pointer to the Game object itself, it contains all the information about the current game
         /// </summary>

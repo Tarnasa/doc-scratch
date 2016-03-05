@@ -9,7 +9,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Chess C++ Player"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Doc Scratch"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -18,6 +18,7 @@ std::string Chess::AI::getName()
 void Chess::AI::start()
 {
     // This is a good place to initialize any variables you add to your AI, or start tracking game objects.
+    state.initialize();
 }
 
 /// <summary>
@@ -54,30 +55,30 @@ bool Chess::AI::runTurn()
     //    4) makes a random (and probably invalid) move.
 
     // 1) print the board to the console
-    for (int file = 9; file >= -1; file--)
+    for (int rank = 9; rank >= -1; rank--)
     {
         std::string str = "";
-        if (file == 9 || file == 0) // then the top or bottom of the board
+        if (rank == 9 || rank == 0) // then the top or bottom of the board
         {
             str = "   +------------------------+";
         }
-        else if (file == -1) // then show the ranks
+        else if (rank == -1) // then show the files
         {
             str = "     a  b  c  d  e  f  g  h";
         }
         else // board
         {
             str += " ";
-            str += std::to_string(file);
+            str += std::to_string(rank);
             str += " |";
-            // fill in all the ranks with pieces at the current rank
-            for (int rankOffset = 0; rankOffset < 8; rankOffset++)
+            // fill in all the rank with pieces at the current file
+            for (int file = 0; file < 8; file++)
             {
-                std::string rank(1, (char)(((int)"a"[0]) + rankOffset)); // start at a, with with rank offset increasing the char;
+                std::string file_string(1, (char)(((int)"a"[0]) + file)); // start at a, with with rank offset increasing the char;
                 Chess::Piece* currentPiece = nullptr;
                 for (auto piece : this->game->pieces)
                 {
-                    if (piece->rank == rank && piece->file == file) // then we found the piece at (rank, file)
+                    if (piece->rank == rank && piece->file == file_string) // then we found the piece at (rank, file)
                     {
                         currentPiece = piece;
                         break;
@@ -119,12 +120,47 @@ bool Chess::AI::runTurn()
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
 
-    // 4) make a random (and probably invalid) move.
+    // Apply previous move to state
+    if (this->game->currentTurn > 0)
+    {
+        std::cout << "Applying move..." << std::endl;
+        Move& move = *(this->game->moves.back());
+        Skaia::Position from(Skaia::rank_to_skaia(move.fromRank), Skaia::file_to_skaia(move.fromFile));
+        Skaia::Position to(Skaia::rank_to_skaia(move.toRank), Skaia::file_to_skaia(move.toFile));
+        // TODO: Detect en-passant, and castling
+        state.apply_action(Skaia::Action(from, to, Skaia::type_to_skaia(move.promotion)));
+    }
+    state.turn = this->game->currentTurn;
+
+    // Select random move to make
     srand(time(NULL));
+    std::cout << "Generating moves..." << std::endl;
+    auto moves = state.generate_actions();
+    std::cout << "Playing random move..." << std::endl;
+    auto move = moves[rand() % moves.size()];
+    // Make move through framework
+    auto from_rank = Skaia::rank_from_skaia(move.from.rank);
+    auto from_file = Skaia::file_from_skaia(move.from.file);
+    auto to_rank = Skaia::rank_from_skaia(move.to.rank);
+    auto to_file = Skaia::file_from_skaia(move.to.file);
+    std::cout << "Trying to find piece at " << from_rank << ", " << from_file << std::endl;
+    for (auto&& piece : this->player->pieces)
+    {
+        if (piece->rank == from_rank && piece->file == from_file)
+        {
+            std::cout << "Found" << std::endl;
+            piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
+        }
+    }
+    // Apply move to state
+    state.apply_action(move);
+
+    /*
     auto randomPiece = this->player->pieces[rand() % this->player->pieces.size()];
     std::string randomRank(1, (char)(((int)"a"[0]) + (rand() % 8)));
     int randomFile = (rand() % 8) + 1;
     randomPiece->move(randomRank, randomFile);
+    */
 
     return true; // to signify we are done with our turn.
 }
