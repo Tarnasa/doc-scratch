@@ -21,6 +21,9 @@ using namespace Skaia;
 
 void SkaiaTest()
 {
+    std::cout << sign(-2) << " " << sign(5) << " " << sign(0) << std::endl;
+    std::cout << Position(5, 5) - Position(0, 0) << std::endl;
+    std::cout << Position(0, 0).direction_to(Position(5, 5)) << std::endl;
     Skaia::State state;
 
     Skaia::Piece* q = nullptr;

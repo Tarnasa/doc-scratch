@@ -28,7 +28,7 @@ namespace Skaia
     Type type_to_skaia(const std::string& type);
     std::string type_from_skaia(Type type);
 
-    template<typename T> T sign(const T& x) { return x > 0 - x < 0; }
+    template<typename T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
     struct Position
     {

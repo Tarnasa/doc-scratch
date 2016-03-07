@@ -193,6 +193,7 @@ namespace Skaia
                         case Bishop:
                         case Rook:
                         case Queen:
+                            std::cout << "from " << attacker.pos << " to " << pos << " is " << attacker.pos.direction_to(pos) << std::endl;
                             check_ray(&attacker, attacker.pos.direction_to(pos), false);
                             need_updating.emplace_back(&attacker, attacker.pos.direction_to(pos));
                             break;
@@ -217,6 +218,7 @@ namespace Skaia
             case Rook: check_rook(piece, true); break;
             case Queen: check_bishop(piece, true); check_rook(piece, true); break;
             case King: check_king(piece, true); break;
+            default: std::cout << "UNKOWN PIECE TYPE:" << piece->type << std::endl;
         }
     }
 
@@ -232,6 +234,7 @@ namespace Skaia
             case Rook: check_rook(piece, false); break;
             case Queen: check_bishop(piece, false); check_rook(piece, false); break;
             case King: check_king(piece, false); break;
+            default: std::cout << "UNKOWN PIECE TYPE:" << piece->type << std::endl;
         }
         // Remove from board
         at(piece->pos).piece = nullptr;
@@ -277,6 +280,7 @@ namespace Skaia
             // Promotion
             if (from.piece->type == Pawn && action.to.rank == from.piece->color ? 7 : 0)
             {
+                LOG("Promotion");
                 if (to.piece != nullptr)
                 {
                     to.piece->alive = false;
@@ -294,6 +298,7 @@ namespace Skaia
             // Castling
             else if (from.piece->type == King && std::abs(static_cast<int>(action.from.file - action.to.file)) == 2)
             {
+                LOG("Castling");
                 at(action.from).piece->special = false;
                 move_piece(action.from, action.to);
                 Position rook_from(action.from.rank, action.to.file == 2 ? 0 : 7);
@@ -312,6 +317,7 @@ namespace Skaia
                 }
                 else // En passant
                 {
+                    LOG("En passant");
                     move_piece(action.from, action.to);
                     Piece* piece = at(action.from.rank, action.to.file).piece;
                     remove_piece(piece);
