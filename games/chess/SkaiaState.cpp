@@ -186,14 +186,12 @@ namespace Skaia
             {
                 if (checks[i])
                 {
-                    std::cout << "Found checker!" << std::endl; // TODO
                     auto& attacker = pieces[i];
                     switch (attacker.type)
                     {
                         case Bishop:
                         case Rook:
                         case Queen:
-                            std::cout << "from " << attacker.pos << " to " << pos << " is " << attacker.pos.direction_to(pos) << std::endl;
                             check_ray(&attacker, attacker.pos.direction_to(pos), false);
                             need_updating.emplace_back(&attacker, attacker.pos.direction_to(pos));
                             break;
@@ -218,7 +216,6 @@ namespace Skaia
             case Rook: check_rook(piece, true); break;
             case Queen: check_bishop(piece, true); check_rook(piece, true); break;
             case King: check_king(piece, true); break;
-            default: std::cout << "UNKOWN PIECE TYPE:" << piece->type << std::endl;
         }
     }
 
@@ -234,7 +231,6 @@ namespace Skaia
             case Rook: check_rook(piece, false); break;
             case Queen: check_bishop(piece, false); check_rook(piece, false); break;
             case King: check_king(piece, false); break;
-            default: std::cout << "UNKOWN PIECE TYPE:" << piece->type << std::endl;
         }
         // Remove from board
         at(piece->pos).piece = nullptr;

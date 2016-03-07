@@ -59,7 +59,7 @@ namespace Skaia
             {
                 if (delta.rank == 0 && delta.file == 0)
                 {
-                    std::cout << "No delta!" << std::endl;
+                    std::cerr << "No delta!" << std::endl;
                     return;
                 }
                 Position new_pos = piece->pos;
@@ -75,7 +75,7 @@ namespace Skaia
             {
                 if (delta.rank == 0 && delta.file == 0)
                 {
-                    std::cout << "No delta!" << std::endl;
+                    std::cerr << "No delta!" << std::endl;
                     return;
                 }
                 Position new_pos = from;
@@ -89,7 +89,11 @@ namespace Skaia
             }
             template<typename F> void ray_action_const(const Piece* piece, const Position& delta, F func) const
             {
-                if (delta.rank == 0 && delta.file == 0) return;
+                if (delta.rank == 0 && delta.file == 0)
+                {
+                    std::cerr << "No delta!" << std::endl;
+                    return;
+                }
                 Position new_pos = piece->pos;
                 while (true)
                 {

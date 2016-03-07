@@ -125,20 +125,35 @@ bool Chess::AI::runTurn()
     // Apply previous move to state
     if (this->game->currentTurn > 0)
     {
-        std::cout << "Applying move..." << std::endl;
         Move& move = *(this->game->moves.back());
         Skaia::Position from(Skaia::rank_to_skaia(move.fromRank), Skaia::file_to_skaia(move.fromFile));
         Skaia::Position to(Skaia::rank_to_skaia(move.toRank), Skaia::file_to_skaia(move.toFile));
-        // TODO: Detect en-passant, and castling
-        state.apply_action(Skaia::Action(from, to, Skaia::type_to_skaia(move.promotion)));
+        Skaia::Type promotion = Skaia::type_to_skaia(move.promotion);
+
+        Skaia::Piece* piece = state.at(from).piece;
+        // Detect double pawn move
+        if (piece->type == Skaia::Pawn && abs(to.rank - from.rank) == 2)
+        {
+            promotion = Skaia::Pawn;
+        }
+        // Detect en-passant
+        if (piece->type == Skaia::Pawn && to.file != from.file && state.at(to).piece == nullptr)
+        {
+            promotion = Skaia::King;
+        }
+        /// Detect castling
+        else if (piece->type == Skaia::King && abs(from.file - to.file) == 2)
+        {
+            promotion = Skaia::King;
+        }
+
+        state.apply_action(Skaia::Action(from, to, promotion));
     }
     state.turn = this->game->currentTurn;
 
     // Select random move to make
     srand(time(NULL));
-    std::cout << "Generating moves..." << std::endl;
     auto moves = state.generate_actions();
-    std::cout << "Playing random move..." << std::endl;
     if (moves.size() == 0) std::cout << "No moves found!" << std::endl;
     auto move = moves[rand() % moves.size()];
     // Make move through framework
@@ -146,12 +161,10 @@ bool Chess::AI::runTurn()
     auto from_file = Skaia::file_from_skaia(move.from.file);
     auto to_rank = Skaia::rank_from_skaia(move.to.rank);
     auto to_file = Skaia::file_from_skaia(move.to.file);
-    std::cout << "Trying to find piece at " << from_rank << ", " << from_file << std::endl;
     for (auto&& piece : this->player->pieces)
     {
         if (piece->rank == from_rank && piece->file == from_file)
         {
-            std::cout << "Found" << std::endl;
             piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
         }
     }
