@@ -278,7 +278,7 @@ namespace Skaia
         if (action.promotion != Empty)
         {
             // Promotion
-            if (from.piece->type == Pawn && action.to.rank == from.piece->color ? 7 : 0)
+            if (from.piece->type == Pawn && action.to.rank == (from.piece->color == Black ? 7 : 0))
             {
                 LOG("Promotion");
                 if (to.piece != nullptr)
@@ -320,6 +320,7 @@ namespace Skaia
                     LOG("En passant");
                     move_piece(action.from, action.to);
                     Piece* piece = at(action.from.rank, action.to.file).piece;
+                    to.piece->alive = false;
                     remove_piece(piece);
                 }
             }
