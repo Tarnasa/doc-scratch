@@ -26,3 +26,12 @@ For Windows, Boost has a simple way to [compile from source using bootstrap](htt
 ## Other notes
 
 The initial `make` step may take upwards of 2 minutes. You should see a percent progress updating on your screen, but it will be slow. Subsequent `make`s should be only a few seconds if you don't `make clean`.
+
+## Additions
+
+The files starting with "Skaia" in the games/chess directory are the core of the chess library.
+The Skaia.h file contains the Position data structure, and functions to convert from Skaia's notation into the notation that SIG-Game's framework expects.
+The SkaiaAction.h file contains a structure which represents an action.
+The SkaiaPiece.h file contains a structure which represents a piece on the board.
+The SkaiaState.h file contains a structure and a buttload of functions for manipulating a state of the game.
+

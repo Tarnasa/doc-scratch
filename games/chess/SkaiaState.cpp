@@ -6,7 +6,7 @@
 //#if TRUE
 #define LOG(s) std::cout<<s<<std::endl
 //#else
-//#define LOG(s)
+#define LOG(s)
 //#endif
 
 namespace Skaia

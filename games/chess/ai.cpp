@@ -56,6 +56,7 @@ bool Chess::AI::runTurn()
     //    3) prints how much time remaining this AI has to calculate moves
     //    4) makes a random (and probably invalid) move.
 
+    /*
     // 1) print the board to the console
     for (int rank = 9; rank >= -1; rank--)
     {
@@ -121,7 +122,9 @@ bool Chess::AI::runTurn()
 
     // 3) print how much time remaining this AI has to calculate moves
     std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
+    */
 
+    std::cout << "Turn number: " << this->game->currentTurn << std::endl;
     // Apply previous move to state
     if (this->game->currentTurn > 0)
     {
@@ -154,8 +157,16 @@ bool Chess::AI::runTurn()
     // Select random move to make
     srand(time(NULL));
     auto moves = state.generate_actions();
-    if (moves.size() == 0) std::cout << "No moves found!" << std::endl;
+    if (moves.size() == 0) std::cerr << "No moves found!" << std::endl;
     auto move = moves[rand() % moves.size()];
+    // Print all moves which the selected action's piece could make
+    for (auto&& action : moves)
+    {
+        if (action.from == move.from)
+        {
+            std::cout << action << std::endl;
+        }
+    }
     // Make move through framework
     auto from_rank = Skaia::rank_from_skaia(move.from.rank);
     auto from_file = Skaia::file_from_skaia(move.from.file);
@@ -170,13 +181,6 @@ bool Chess::AI::runTurn()
     }
     // Apply move to state
     state.apply_action(move);
-
-    /*
-    auto randomPiece = this->player->pieces[rand() % this->player->pieces.size()];
-    std::string randomRank(1, (char)(((int)"a"[0]) + (rand() % 8)));
-    int randomFile = (rand() % 8) + 1;
-    randomPiece->move(randomRank, randomFile);
-    */
 
     return true; // to signify we are done with our turn.
 }
