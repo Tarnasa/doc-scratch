@@ -7,12 +7,12 @@
 #include <iostream> // TODO: Remove this
 
 #include "SkaiaAction.h"
+#include "SkaiaPiece.h"
 #include "Skaia.h"
 
 namespace Skaia
 {
-    /*
-    class NeoSkaia
+    class State
     {
         public:
             struct Square
@@ -20,283 +20,120 @@ namespace Skaia
                 Piece* piece;
                 std::bitset<32> checks;
 
-                Square() {}
+                Square() : piece(nullptr), checks() {}
+                Square(Piece* piece) : piece(piece) {}
                 Square(Piece* piece, const std::bitset<32>& checks) : piece(piece), checks(checks) {}
+
+                bool checked_by_color(Color color) const
+                {
+                    return checks.to_ulong() & (color ? 0x0000ffff : 0xffff0000);
+                }
             };
 
             size_t turn;
             std::array<Piece, 32> pieces;
             std::array<Square, 8 * 8> squares;
-            std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> piecesByColorAndType;
-            Piece* doubleMovedPawn; // Points to a pawn that is capturable by en-passant, or nullptr
+            std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;
+            Piece* double_moved_pawn; // Points to a pawn that is capturable by en-passant, or nullptr
 
-            State() {}
-            void initialize();
-            */
+            State();
+            State(const State& source);
 
+            // Check if a position is on the board
+            static bool inside(int rank, int file) { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }
+            static bool inside(const Position& pos) { return inside(pos.rank, pos.file); }
 
+            // Access a square
+            const Square& at(int rank, int file) const;
+            const Square& at(const Position& pos) const;
+            Square& at(int rank, int file);
+            Square& at(const Position& pos);
 
+            // Check if a position is good for a piece to move to
+            bool empty(const Position& pos) const;
+            bool canTake(const Piece* piece, const Position& pos) const;
+            bool canKill(const Piece* piece, const Position& pos) const;
 
-    class State
-    {
-        public:
-            struct Square
+            // Ray-casting functions
+            template<typename F> void ray_action(const Piece* piece, const Position& delta, F func)
             {
-                Type type;
-                Color color;
-                std::array<size_t, 2> checked;
-                size_t special;
-
-                Square() {}
-                Square(Type type, Color color, size_t w_checked, size_t b_checked, size_t special) :
-                    type(type), color(color), special(special) { checked[0] = w_checked; checked[1] = b_checked; }
-            };
-
-            size_t turn;
-            std::array<Square, 8 * 8> squares;
-
-            State() {}
-            void initialize();
-
-            bool inside(int rank, int file) const { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }
-            bool inside(const Position& pos) const { return inside(pos.rank, pos.file); }
-            const Square& at(int rank, int file) const
-            {
-                std::cout << "at: " << rank << ", " << file << std::endl;
-                return squares[rank * 8 + file];
+                if (delta.rank == 0 && delta.file == 0)
+                {
+                    std::cout << "No delta!" << std::endl;
+                    return;
+                }
+                Position new_pos = piece->pos;
+                while (true)
+                {
+                    new_pos += delta;
+                    if (!canTake(piece, new_pos)) break;
+                    func(new_pos);
+                    if (!empty(new_pos)) break;
+                }
             }
-            const Square& at(const Position& pos) const
+            template<typename F> void ray_action(const Position& from, const Position& delta, F func)
             {
-                std::cout << "at: " << pos.rank << ", " << pos.file << std::endl;
-                return squares[pos.rank * 8 + pos.file];
+                if (delta.rank == 0 && delta.file == 0)
+                {
+                    std::cout << "No delta!" << std::endl;
+                    return;
+                }
+                Position new_pos = from;
+                while (true)
+                {
+                    new_pos += delta;
+                    if (!inside(new_pos)) break;
+                    func(new_pos);
+                    if (!empty(new_pos)) break;
+                }
             }
-            Square& at(int rank, int file)
+            template<typename F> void ray_action_const(const Piece* piece, const Position& delta, F func) const
             {
-                std::cout << "at: " << rank << ", " << file << std::endl;
-                return squares[rank * 8 + file];
+                if (delta.rank == 0 && delta.file == 0) return;
+                Position new_pos = piece->pos;
+                while (true)
+                {
+                    new_pos += delta;
+                    if (!canTake(piece, new_pos)) break;
+                    func(new_pos);
+                    if (!empty(new_pos)) break;
+                }
             }
-            Square& at(const Position& pos)
-            {
-                std::cout << "at: " << pos.rank << ", " << pos.file << std::endl;
-                return squares[pos.rank * 8 + pos.file];
-            }
+            Position ray(const Piece* piece, const Position& delta) const;
 
-            int distance_from_back_rank(bool color, int rank) const
+            // Functions for setting check
+            void check_ray(const Piece* piece, const Position& delta, bool check);
+            void check_pos(const Piece* piece, const Position& pos, bool check);
+            void check_pawn(const Piece* piece, bool check);
+            void check_bishop(const Piece* piece, bool check);
+            void check_rook(const Piece* piece, bool check);
+            void check_knight(const Piece* piece, bool check);
+            void check_king(const Piece* piece, bool check);
+
+            // Functions for moving pieces around the board
+            void place_piece(Piece* piece, const Position& pos);
+            void remove_piece(const Piece* piece);
+            void move_piece(const Position& from, const Position& to);
+
+            int distance_from_back_rank(Color color, int rank) const
             {
                 return color ? 7 - rank : rank;
             }
 
-            void add_piece(const Position& pos, Type type, Color color)
-            {
-                // TODO:
-                // Check for blocking other pieces lines
-                // Check for which squares the newly placed piece checks
-                at(pos.rank, pos.file) = Square(type, color, 0u, 0u, 0u);
-            }
-
-            void remove_piece(const Position& pos)
-            {
-                // TODO:
-                // Remove lines from previous piece
-                // Check for new sight lines
-                at(pos.rank, pos.file) = Square(Empty, White, 0u, 0u, 0u);
-            }
-
-            void move_piece(const Position& from, const Position& to)
-            {
-                Type type = at(from).type;
-                Color color = at(from).color;
-                remove_piece(from);
-                add_piece(to, type, color);
-            }
-
             void apply_action(const Action& action);
 
-            bool valid_move(const Square& from, const Position& to) const
-            {
-                return inside(to) && (at(to).type == Empty || at(to).color != from.color);
-            }
-            bool empty(const Position& pos) const
-            {
-                std::cout << "empty? " << pos.rank << ", " << pos.file << std::endl;
-                return inside(pos) && at(pos).type == Empty;
-            }
-            bool attackable(const Square& from, const Position& to) const
-            {
-                return inside(to) && at(to).type != Empty && at(to).color != from.color;
-            }
+            // Functions for generating moves
+            bool is_in_check(Color color) const;
+            std::vector<Action> generate_actions() const;
 
-            void pawn_move_with_promotions(const Square& square, const Position& from, const Position& to, std::vector<Action>& actions) const
-            {
-                std::cout << "Promotions" << std::endl;
-                if (to.rank == (square.color ? 7 : 0))
-                {
-                    actions.emplace_back(from, to, Bishop);
-                    actions.emplace_back(from, to, Knight);
-                    actions.emplace_back(from, to, Rook);
-                    actions.emplace_back(from, to, Queen);
-                }
-                else
-                {
-                    actions.emplace_back(from, to, Empty);
-                }
-            }
-
-            void possible_pawn_moves(const Square& square, const Position& pos, std::vector<Action>& actions) const
-            {
-                std::cout << "Pawn" << std::endl;
-                int direction = square.color ? 1 : -1;
-                // Move forward
-                std::cout << "Move forward" << std::endl;
-                Position new_pos(pos + Position(direction, 0));
-                std::cout << "new_pos" << std::endl;
-                if (empty(new_pos)) pawn_move_with_promotions(square, pos, new_pos, actions);
-                std::cout << "Double move check" << std::endl;
-                // Move forward twice on first move
-                if (pos.rank == (square.color ? 6 : 1))
-                {
-                    new_pos = pos + Position(direction * 2, 0);
-                    if (empty(pos + Position(direction, 0)) && empty(new_pos)) actions.emplace_back(pos, new_pos, Empty);
-                }
-                std::cout << "Attack" << std::endl;
-                // Attack + En Passant
-                new_pos = pos + Position(direction, -1);
-                if (attackable(square, new_pos)) pawn_move_with_promotions(square, pos, new_pos, actions);
-                if (attackable(square, Position(pos.rank, new_pos.file)) && at(pos.rank, new_pos.file).special == (turn - 1) && empty(new_pos)) actions.emplace_back(pos, new_pos, King);
-                new_pos = pos + Position(direction, +1);
-                if (attackable(square, new_pos)) pawn_move_with_promotions(square, pos, new_pos, actions);
-                if (attackable(square, Position(pos.rank, new_pos.file)) && at(pos.rank, new_pos.file).special == (turn - 1) && empty(new_pos)) actions.emplace_back(pos, new_pos, King);
-            }
-
-            void line_moves(const Square& square, const Position& from, const Position& delta, std::vector<Action>& actions) const
-            {
-                for (auto d = 1u; d < 8; ++d)
-                {
-                    Position new_pos = from + delta * d;
-                    if (inside(new_pos))
-                    {
-                        if (empty(new_pos))
-                        {
-                            actions.emplace_back(from, new_pos, Empty);
-                        }
-                        else if (attackable(square, new_pos))
-                        {
-                            actions.emplace_back(from, new_pos, Empty);
-                            break;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-
-            void possible_bishop_moves(const Square& square, const Position& from, std::vector<Action>& actions) const
-            {
-                line_moves(square, from, Position(1, 1), actions);
-                line_moves(square, from, Position(-1, 1), actions);
-                line_moves(square, from, Position(1, -1), actions);
-                line_moves(square, from, Position(-1, -1), actions);
-            }
-
-            void possible_rook_moves(const Square& square, const Position& from, std::vector<Action>& actions) const
-            {
-                line_moves(square, from, Position(1, 0), actions);
-                line_moves(square, from, Position(0, 1), actions);
-                line_moves(square, from, Position(-1, 0), actions);
-                line_moves(square, from, Position(0, -1), actions);
-            }
-
-            void possible_knight_moves(const Square& square, const Position& from, std::vector<Action>& actions) const
-            {
-                Position new_pos = from + Position(-2, +1);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(-1, +2);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(+1, +2);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(+2, +1);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(+2, -1);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(+1, -2);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(-1, -2);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-                new_pos = from + Position(-2, -1);
-                if (valid_move(square, new_pos)) actions.emplace_back(from, new_pos, Empty);
-            }
-
-            std::vector<Action> generate_actions() const
-            {
-                std::vector<Action> actions;
-                // TODO: Optimize
-                // TODO: Consider Check
-                for (auto rank = 0u; rank < 8; ++rank)
-                {
-                    for (auto file = 0u; file < 8; ++file)
-                    {
-                        Position pos(rank, file);
-                        const Square& square = at(pos);
-                        if (square.type != Empty && square.color == turn % 2)
-                        {
-                            std::cout << "Type: " << square.type << std::endl;
-                            switch (square.type)
-                            {
-                                case Pawn: possible_pawn_moves(square, pos, actions); break;
-                                case Bishop: possible_bishop_moves(square, pos, actions); break;
-                                case Knight: possible_knight_moves(square, pos, actions); break;
-                                case Rook: possible_rook_moves(square, pos, actions); break;
-                                case Queen:
-                                    possible_bishop_moves(square, pos, actions);
-                                    possible_rook_moves(square, pos, actions);
-                                    break;
-                            }
-                        }
-                    }
-                }
-                return actions;
-            }
-
-            /*
-            Position is_in_check_from_direction_rook(Color color, const Position& pos, const Position& delta)
-            {
-                for (int i = 0; i < 8; ++i)
-                {
-                    Position new_pos = pos + delta * i;
-                    if (!inside(pos)) break;
-                    if (at(pos).type == Rook || at(pos).type == Queen && at(pos).type != Empty && at(pos).color != color)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            bool is_in_check(Color color) const
-            {
-                // Find King
-                Square king;
-                Position king_pos;
-                for (auto i = 0u; i < 8 * 8; ++i)
-                {
-                    if (square[i].type == King && square[i].color == color)
-                    {
-                        king = squares[i];
-                        king_pos = Position(i / 8, i % 8);
-                    }
-                }
-                // Search outward in each direction to find attackers
-                for (int i = 0; i < 8; ++i)
-                {
-
-
-            }
-            */
+            void try_take(const Piece* piece, const Position& to, std::vector<Action>& actions) const;
+            void pawn_move_with_promotions(const Piece* piece, const Position& to, std::vector<Action>& actions) const;
+            void possible_pawn_moves(const Piece* piece, std::vector<Action>& actions) const;
+            void line_moves(const Piece* piece, const Position& delta, std::vector<Action>& actions) const;
+            void possible_bishop_moves(const Piece* piece, std::vector<Action>& actions) const;
+            void possible_rook_moves(const Piece* piece, std::vector<Action>& actions) const;
+            void possible_knight_moves(const Piece* piece, std::vector<Action>& actions) const;
+            void possible_king_moves(const Piece* piece, std::vector<Action>& actions) const;
     };
 
     /*
@@ -314,4 +151,7 @@ namespace Skaia
     };
     */
 }
+
+std::ostream& operator<<(std::ostream& out, const Skaia::State& state);
+
 

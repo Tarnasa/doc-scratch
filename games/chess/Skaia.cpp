@@ -6,7 +6,6 @@ namespace Skaia
     std::string file_from_skaia(int file) { return std::string(1, 'a' + static_cast<char>(file)); }
     int rank_to_skaia(int rank) { return 8 - rank; }
     int rank_from_skaia(int rank) { return 8 - rank; }
-    Type type_to_skaia(const std::string& type);
     Type type_to_skaia(const std::string& type)
     {
         switch (type[2])
@@ -21,5 +20,10 @@ namespace Skaia
         }
     }
     std::string type_from_skaia(Type type) { return names[type]; }
+}
+
+std::ostream& operator<<(std::ostream& out, const Skaia::Position& pos)
+{
+    return out << Skaia::file_from_skaia(pos.file) << Skaia::rank_from_skaia(pos.rank);
 }
 

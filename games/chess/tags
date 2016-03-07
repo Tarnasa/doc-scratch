@@ -1,0 +1,191 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AI	ai.h	/^class Chess::AI : public Joueur::BaseAI$/;"	c	class:Chess
+Action	SkaiaAction.h	/^            Action(const Position& from, const Position& to, Type promotion) :$/;"	f	class:Skaia::Action
+Action	SkaiaAction.h	/^    class Action$/;"	c	namespace:Skaia
+Chess	chess.h	/^namespace Chess$/;"	n
+Game	game.h	/^        Game() { this->name = "Chess"; };$/;"	f	class:Chess::Game
+Game	game.h	/^class Chess::Game : public Joueur::BaseGame$/;"	c	class:Chess
+GameManager	gameManager.cpp	/^Chess::GameManager::GameManager() :$/;"	f	class:Chess::GameManager
+GameManager	gameManager.h	/^class Chess::GameManager : public Joueur::BaseGameManager$/;"	c	class:Chess
+GameObject	gameObject.h	/^        GameObject() {};$/;"	f	class:Chess::GameObject
+GameObject	gameObject.h	/^class Chess::GameObject : public Joueur::BaseGameObject$/;"	c	class:Chess
+JOUEUR_CHESS_AI_H	ai.h	4;"	d
+JOUEUR_CHESS_GAMEMANAGER_H	gameManager.h	5;"	d
+JOUEUR_CHESS_GAMEOBJECT_H	gameObject.h	5;"	d
+JOUEUR_CHESS_GAME_H	game.h	5;"	d
+JOUEUR_CHESS_H	chess.h	2;"	d
+JOUEUR_CHESS_MOVE_H	move.h	5;"	d
+JOUEUR_CHESS_PIECE_H	piece.h	5;"	d
+JOUEUR_CHESS_PLAYER_H	player.h	5;"	d
+JOUEUR_CHESS_REGISTERY_H	registry.h	2;"	d
+LOG	SkaiaState.cpp	7;"	d	file:
+Move	move.h	/^        Move() {};$/;"	f	class:Chess::Move
+Move	move.h	/^class Chess::Move : public Chess::GameObject$/;"	c	class:Chess
+Piece	SkaiaPiece.h	/^            Piece() : type(Empty), id(-1), special(true), alive(true) {}$/;"	f	class:Skaia::Piece
+Piece	SkaiaPiece.h	/^            Piece(const Position& pos, Type type, Color color, size_t id, bool alive, size_t special = 0) :$/;"	f	class:Skaia::Piece
+Piece	SkaiaPiece.h	/^    class Piece$/;"	c	namespace:Skaia
+Piece	piece.h	/^        Piece() {};$/;"	f	class:Chess::Piece
+Piece	piece.h	/^class Chess::Piece : public Chess::GameObject$/;"	c	class:Chess
+Player	player.h	/^        Player() {};$/;"	f	class:Chess::Player
+Player	player.h	/^class Chess::Player : public Chess::GameObject, public Joueur::BasePlayer$/;"	c	class:Chess
+Position	Skaia.h	/^        Position() {}$/;"	f	struct:Skaia::Position
+Position	Skaia.h	/^        Position(int rank, int file) : rank(rank), file(file) {}$/;"	f	struct:Skaia::Position
+Position	Skaia.h	/^    struct Position$/;"	s	namespace:Skaia
+Skaia	Skaia.cpp	/^namespace Skaia$/;"	n	file:
+Skaia	Skaia.h	/^namespace Skaia$/;"	n
+Skaia	SkaiaAction.h	/^namespace Skaia$/;"	n
+Skaia	SkaiaPiece.h	/^namespace Skaia$/;"	n
+Skaia	SkaiaState.cpp	/^namespace Skaia$/;"	n	file:
+Skaia	SkaiaState.h	/^namespace Skaia$/;"	n
+SkaiaTest	SkaiaTest.cpp	/^void SkaiaTest()$/;"	f
+Square	SkaiaState.h	/^                Square() : piece(nullptr), checks() {}$/;"	f	struct:Skaia::State::Square
+Square	SkaiaState.h	/^                Square(Piece* piece) : piece(piece) {}$/;"	f	struct:Skaia::State::Square
+Square	SkaiaState.h	/^                Square(Piece* piece, const std::bitset<32>& checks) : piece(piece), checks(checks) {}$/;"	f	struct:Skaia::State::Square
+Square	SkaiaState.h	/^            struct Square$/;"	s	class:Skaia::State
+State	SkaiaState.cpp	/^    State::State() : turn(0), pieces(), squares(),$/;"	f	class:Skaia::State
+State	SkaiaState.cpp	/^    State::State(const State& source) : turn(source.turn), pieces(source.pieces), squares(),$/;"	f	class:Skaia::State
+State	SkaiaState.h	/^    class State$/;"	c	namespace:Skaia
+alive	SkaiaPiece.h	/^            bool alive;$/;"	m	class:Skaia::Piece
+apply_action	SkaiaState.cpp	/^    void State::apply_action(const Action& action)$/;"	f	class:Skaia::State
+at	SkaiaState.cpp	/^    State::Square& State::at(const Position& pos)$/;"	f	class:Skaia::State
+at	SkaiaState.cpp	/^    State::Square& State::at(int rank, int file)$/;"	f	class:Skaia::State
+at	SkaiaState.cpp	/^    const State::Square& State::at(const Position& pos) const$/;"	f	class:Skaia::State
+at	SkaiaState.cpp	/^    const State::Square& State::at(int rank, int file) const$/;"	f	class:Skaia::State
+canKill	SkaiaState.cpp	/^    bool State::canKill(const Piece* piece, const Position& pos) const$/;"	f	class:Skaia::State
+canTake	SkaiaState.cpp	/^    bool State::canTake(const Piece* piece, const Position& pos) const$/;"	f	class:Skaia::State
+captured	move.h	/^        Chess::Piece* captured;$/;"	m	class:Chess::Move
+captured	piece.h	/^        bool captured;$/;"	m	class:Chess::Piece
+check_bishop	SkaiaState.cpp	/^    void State::check_bishop(const Piece* piece, bool check)$/;"	f	class:Skaia::State
+check_king	SkaiaState.cpp	/^    void State::check_king(const Piece* piece, bool check)$/;"	f	class:Skaia::State
+check_knight	SkaiaState.cpp	/^    void State::check_knight(const Piece* piece, bool check)$/;"	f	class:Skaia::State
+check_pawn	SkaiaState.cpp	/^    void State::check_pawn(const Piece* piece, bool check)$/;"	f	class:Skaia::State
+check_pos	SkaiaState.cpp	/^    void State::check_pos(const Piece* piece, const Position& pos, bool check)$/;"	f	class:Skaia::State
+check_ray	SkaiaState.cpp	/^    void State::check_ray(const Piece* piece, const Position& delta, bool check)$/;"	f	class:Skaia::State
+check_rook	SkaiaState.cpp	/^    void State::check_rook(const Piece* piece, bool check)$/;"	f	class:Skaia::State
+checked_by_color	SkaiaState.h	/^                bool checked_by_color(Color color) const$/;"	f	struct:Skaia::State::Square
+checks	SkaiaState.h	/^                std::bitset<32> checks;$/;"	m	struct:Skaia::State::Square
+chessAI	gameManager.h	/^        Chess::AI* chessAI;$/;"	m	class:Chess::GameManager
+chessGame	gameManager.h	/^        Chess::Game* chessGame;$/;"	m	class:Chess::GameManager
+clientType	player.h	/^        std::string clientType;$/;"	m	class:Chess::Player
+color	SkaiaPiece.h	/^            Color color; \/\/ 0=white, 1=black$/;"	m	class:Skaia::Piece
+color	player.h	/^        std::string color;$/;"	m	class:Chess::Player
+createGameObject	gameManager.cpp	/^Joueur::BaseGameObject* Chess::GameManager::createGameObject(const std::string& gameObjectName)$/;"	f	class:Chess::GameManager
+currentPlayer	game.h	/^        Chess::Player* currentPlayer;$/;"	m	class:Chess::Game
+currentTurn	game.h	/^        int currentTurn;$/;"	m	class:Chess::Game
+deltaUpdateField	game.cpp	/^void Chess::Game::deltaUpdateField(const std::string& fieldName, boost::property_tree::ptree& delta)$/;"	f	class:Chess::Game
+deltaUpdateField	gameObject.cpp	/^void Chess::GameObject::deltaUpdateField(const std::string& fieldName, boost::property_tree::ptree& delta)$/;"	f	class:Chess::GameObject
+deltaUpdateField	move.cpp	/^void Chess::Move::deltaUpdateField(const std::string& fieldName, boost::property_tree::ptree& delta)$/;"	f	class:Chess::Move
+deltaUpdateField	piece.cpp	/^void Chess::Piece::deltaUpdateField(const std::string& fieldName, boost::property_tree::ptree& delta)$/;"	f	class:Chess::Piece
+deltaUpdateField	player.cpp	/^void Chess::Player::deltaUpdateField(const std::string& fieldName, boost::property_tree::ptree& delta)$/;"	f	class:Chess::Player
+direction_to	Skaia.h	/^        Position direction_to(const Position& to) const$/;"	f	struct:Skaia::Position
+distance_from_back_rank	SkaiaState.h	/^            int distance_from_back_rank(Color color, int rank) const$/;"	f	class:Skaia::State
+double_moved_pawn	SkaiaState.h	/^            Piece* double_moved_pawn; \/\/ Points to a pawn that is capturable by en-passant, or nullptr$/;"	m	class:Skaia::State
+empty	SkaiaState.cpp	/^    bool State::empty(const Position& pos) const$/;"	f	class:Skaia::State
+ended	ai.cpp	/^void Chess::AI::ended(bool won, std::string reason)$/;"	f	class:Chess::AI
+file	Skaia.h	/^        int rank, file;$/;"	m	struct:Skaia::Position
+file	piece.h	/^        std::string file;$/;"	m	class:Chess::Piece
+file_from_skaia	Skaia.cpp	/^    std::string file_from_skaia(int file) { return std::string(1, 'a' + static_cast<char>(file)); }$/;"	f	namespace:Skaia
+file_to_skaia	Skaia.cpp	/^    int file_to_skaia(const std::string& file) { return file[0] - 'a'; }$/;"	f	namespace:Skaia
+from	SkaiaAction.h	/^            Position from, to;$/;"	m	class:Skaia::Action
+fromFile	move.h	/^        std::string fromFile;$/;"	m	class:Chess::Move
+fromRank	move.h	/^        int fromRank;$/;"	m	class:Chess::Move
+game	ai.h	/^        Chess::Game* game;$/;"	m	class:Chess::AI
+gameUpdated	ai.cpp	/^void Chess::AI::gameUpdated()$/;"	f	class:Chess::AI
+generate_actions	SkaiaState.cpp	/^    std::vector<Action> State::generate_actions() const$/;"	f	class:Skaia::State
+getName	ai.cpp	/^std::string Chess::AI::getName()$/;"	f	class:Chess::AI
+hasMoved	piece.h	/^        bool hasMoved;$/;"	m	class:Chess::Piece
+id	SkaiaPiece.h	/^            int id;$/;"	m	class:Skaia::Piece
+inCheck	player.h	/^        bool inCheck;$/;"	m	class:Chess::Player
+inside	SkaiaState.h	/^            static bool inside(const Position& pos) { return inside(pos.rank, pos.file); }$/;"	f	class:Skaia::State
+inside	SkaiaState.h	/^            static bool inside(int rank, int file) { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }$/;"	f	class:Skaia::State
+is_in_check	SkaiaState.cpp	/^    bool State::is_in_check(Color color) const$/;"	f	class:Skaia::State
+line_moves	SkaiaState.cpp	/^    void State::line_moves(const Piece* piece, const Position& delta, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+log	gameObject.cpp	/^void Chess::GameObject::log(std::string message)$/;"	f	class:Chess::GameObject
+logs	gameObject.h	/^        std::vector<std::string> logs;$/;"	m	class:Chess::GameObject
+madeMove	player.h	/^        bool madeMove;$/;"	m	class:Chess::Player
+maxTurns	game.h	/^        int maxTurns;$/;"	m	class:Chess::Game
+move	piece.cpp	/^Chess::Move* Chess::Piece::move(std::string file, int rank, std::string promotionType)$/;"	f	class:Chess::Piece
+move_piece	SkaiaState.cpp	/^    void State::move_piece(const Position& from, const Position& to)$/;"	f	class:Skaia::State
+moves	game.h	/^        std::vector<Chess::Move*> moves;$/;"	m	class:Chess::Game
+name	player.h	/^        std::string name;$/;"	m	class:Chess::Player
+names	Skaia.h	/^    static const std::vector<std::string> names = {"Empty", "Pawn", "Bishop", "Knight", "Rook", "Queen", "King"};$/;"	m	namespace:Skaia
+operator !=	Skaia.h	/^        bool operator!=(const Position& rhs) const { return rank != rhs.rank || file != rhs.file; }$/;"	f	struct:Skaia::Position
+operator !=	SkaiaAction.h	/^            bool operator!=(const Action& rhs)$/;"	f	class:Skaia::Action
+operator *	Skaia.h	/^        Position operator*(int factor) const$/;"	f	struct:Skaia::Position
+operator *=	Skaia.h	/^        Position& operator*=(int factor) { rank *= factor; file *= factor; }$/;"	f	struct:Skaia::Position
+operator +	Skaia.h	/^        Position operator+(const Position& rhs) const$/;"	f	struct:Skaia::Position
+operator +=	Skaia.h	/^        Position& operator+=(const Position& rhs) { rank += rhs.rank; file += rhs.file; }$/;"	f	struct:Skaia::Position
+operator -	Skaia.h	/^        Position operator-(const Position& rhs) const$/;"	f	struct:Skaia::Position
+operator -=	Skaia.h	/^        Position& operator-=(const Position& rhs) { rank -= rhs.rank; file -= rhs.file; }$/;"	f	struct:Skaia::Position
+operator <<	Skaia.cpp	/^std::ostream& operator<<(std::ostream& out, const Skaia::Position& pos)$/;"	f
+operator <<	SkaiaAction.cpp	/^std::ostream& operator<<(std::ostream& out, const Skaia::Action& action)$/;"	f
+operator <<	SkaiaState.cpp	/^std::ostream& operator<<(std::ostream& out, const Skaia::State& state)$/;"	f
+operator ==	Skaia.h	/^        bool operator==(const Position& rhs) const { return rank == rhs.rank && file == rhs.file; }$/;"	f	struct:Skaia::Position
+orderAI	gameManager.cpp	/^boost::property_tree::ptree* Chess::GameManager::orderAI(const std::string& order, boost::property_tree::ptree* args)$/;"	f	class:Chess::GameManager
+otherPlayer	player.h	/^        Chess::Player* otherPlayer;$/;"	m	class:Chess::Player
+owner	piece.h	/^        Chess::Player* owner;$/;"	m	class:Chess::Piece
+pawn_move_with_promotions	SkaiaState.cpp	/^    void State::pawn_move_with_promotions(const Piece* piece, const Position& to, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+piece	SkaiaState.h	/^                Piece* piece;$/;"	m	struct:Skaia::State::Square
+piece	move.h	/^        Chess::Piece* piece;$/;"	m	class:Chess::Move
+pieces	SkaiaState.h	/^            std::array<Piece, 32> pieces;$/;"	m	class:Skaia::State
+pieces	game.h	/^        std::vector<Chess::Piece*> pieces;$/;"	m	class:Chess::Game
+pieces	player.h	/^        std::vector<Chess::Piece*> pieces;$/;"	m	class:Chess::Player
+pieces_by_color_and_type	SkaiaState.h	/^            std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;$/;"	m	class:Skaia::State
+place_piece	SkaiaState.cpp	/^    void State::place_piece(Piece* piece, const Position& pos)$/;"	f	class:Skaia::State
+player	ai.h	/^        Chess::Player* player;$/;"	m	class:Chess::AI
+players	game.h	/^        std::vector<Chess::Player*> players;$/;"	m	class:Chess::Game
+pos	SkaiaPiece.h	/^            Position pos;$/;"	m	class:Skaia::Piece
+possible_bishop_moves	SkaiaState.cpp	/^    void State::possible_bishop_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+possible_king_moves	SkaiaState.cpp	/^    void State::possible_king_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+possible_knight_moves	SkaiaState.cpp	/^    void State::possible_knight_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+possible_pawn_moves	SkaiaState.cpp	/^    void State::possible_pawn_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+possible_rook_moves	SkaiaState.cpp	/^    void State::possible_rook_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+print_checks	SkaiaTest.cpp	/^void print_checks(const Skaia::State& state, int piece_id)$/;"	f
+promotion	SkaiaAction.h	/^            Type promotion;$/;"	m	class:Skaia::Action
+promotion	move.h	/^        std::string promotion;$/;"	m	class:Chess::Move
+rank	Skaia.h	/^        int rank, file;$/;"	m	struct:Skaia::Position
+rank	piece.h	/^        int rank;$/;"	m	class:Chess::Piece
+rankDirection	player.h	/^        int rankDirection;$/;"	m	class:Chess::Player
+rank_from_skaia	Skaia.cpp	/^    int rank_from_skaia(int rank) { return 8 - rank; }$/;"	f	namespace:Skaia
+rank_to_skaia	Skaia.cpp	/^    int rank_to_skaia(int rank) { return 8 - rank; }$/;"	f	namespace:Skaia
+ray	SkaiaState.cpp	/^    Position State::ray(const Piece* piece, const Position& delta) const$/;"	f	class:Skaia::State
+ray_action	SkaiaState.h	/^            template<typename F> void ray_action(const Piece* piece, const Position& delta, F func)$/;"	f	class:Skaia::State
+ray_action	SkaiaState.h	/^            template<typename F> void ray_action(const Position& from, const Position& delta, F func)$/;"	f	class:Skaia::State
+ray_action_const	SkaiaState.h	/^            template<typename F> void ray_action_const(const Piece* piece, const Position& delta, F func) const$/;"	f	class:Skaia::State
+remove_piece	SkaiaState.cpp	/^    void State::remove_piece(const Piece* piece)$/;"	f	class:Skaia::State
+rhs	SkaiaPiece.h	/^            Piece& operator=(const Piece& rhs) = default;$/;"	m	class:Skaia::Piece
+runTurn	ai.cpp	/^bool Chess::AI::runTurn()$/;"	f	class:Chess::AI
+san	move.h	/^        std::string san;$/;"	m	class:Chess::Move
+session	game.h	/^        std::string session;$/;"	m	class:Chess::Game
+setupAI	gameManager.cpp	/^void Chess::GameManager::setupAI(const std::string& playerID)$/;"	f	class:Chess::GameManager
+sign	Skaia.h	/^    template<typename T> T sign(const T& x) { return x > 0 - x < 0; }$/;"	f	namespace:Skaia
+source	Skaia.h	/^        Position& operator=(Position&& source) = default;$/;"	m	struct:Skaia::Position
+source	Skaia.h	/^        Position& operator=(const Position& source) = default;$/;"	m	struct:Skaia::Position
+source	Skaia.h	/^        Position(Position&& source) = default;$/;"	m	struct:Skaia::Position
+source	Skaia.h	/^        Position(const Position& source) = default;$/;"	m	struct:Skaia::Position
+source	SkaiaPiece.h	/^            Piece(const Piece& source) = default;$/;"	m	class:Skaia::Piece
+special	SkaiaPiece.h	/^            int special;$/;"	m	class:Skaia::Piece
+squares	SkaiaState.h	/^            std::array<Square, 8 * 8> squares;$/;"	m	class:Skaia::State
+start	ai.cpp	/^void Chess::AI::start()$/;"	f	class:Chess::AI
+state	ai.h	/^        Skaia::State state;$/;"	m	class:Chess::AI
+timeRemaining	player.h	/^        float timeRemaining;$/;"	m	class:Chess::Player
+to	SkaiaAction.h	/^            Position from, to;$/;"	m	class:Skaia::Action
+toFile	move.h	/^        std::string toFile;$/;"	m	class:Chess::Move
+toRank	move.h	/^        int toRank;$/;"	m	class:Chess::Move
+try_take	SkaiaState.cpp	/^    void State::try_take(const Piece* piece, const Position& to, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
+turn	SkaiaState.h	/^            size_t turn;$/;"	m	class:Skaia::State
+turnsToDraw	game.h	/^        int turnsToDraw;$/;"	m	class:Chess::Game
+type	SkaiaPiece.h	/^            Type type;$/;"	m	class:Skaia::Piece
+type	piece.h	/^        std::string type;$/;"	m	class:Chess::Piece
+type_from_skaia	Skaia.cpp	/^    std::string type_from_skaia(Type type) { return names[type]; }$/;"	f	namespace:Skaia
+type_to_skaia	Skaia.cpp	/^    Type type_to_skaia(const std::string& type)$/;"	f	namespace:Skaia
+~Game	game.h	/^        ~Game() {};$/;"	f	class:Chess::Game
+~GameObject	gameObject.h	/^        ~GameObject() {};$/;"	f	class:Chess::GameObject
+~Move	move.h	/^        ~Move() {};$/;"	f	class:Chess::Move
+~Piece	piece.h	/^        ~Piece() {};$/;"	f	class:Chess::Piece
+~Player	player.h	/^        ~Player() {};$/;"	f	class:Chess::Player

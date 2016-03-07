@@ -7,7 +7,7 @@
 
 namespace Skaia
 {
-    enum Type : uint8_t {Empty, Pawn, Bishop, Knight, Rook, Queen, King};
+    enum Type : int {Empty, Pawn, Bishop, Knight, Rook, Queen, King, NumberOfTypes};
     enum TypeMask : uint8_t
     {
         MEmpty =  0,
@@ -28,6 +28,8 @@ namespace Skaia
     Type type_to_skaia(const std::string& type);
     std::string type_from_skaia(Type type);
 
+    template<typename T> T sign(const T& x) { return x > 0 - x < 0; }
+
     struct Position
     {
         int rank, file;
@@ -40,11 +42,18 @@ namespace Skaia
         bool operator==(const Position& rhs) const { return rank == rhs.rank && file == rhs.file; }
         bool operator!=(const Position& rhs) const { return rank != rhs.rank || file != rhs.file; }
         Position& operator+=(const Position& rhs) { rank += rhs.rank; file += rhs.file; }
+        Position& operator-=(const Position& rhs) { rank -= rhs.rank; file -= rhs.file; }
         Position& operator*=(int factor) { rank *= factor; file *= factor; }
         Position operator+(const Position& rhs) const
         {
             Position new_pos(*this);
             new_pos += rhs;
+            return new_pos;
+        }
+        Position operator-(const Position& rhs) const
+        {
+            Position new_pos(*this);
+            new_pos -= rhs;
             return new_pos;
         }
         Position operator*(int factor) const
@@ -53,6 +62,15 @@ namespace Skaia
             new_pos *= factor;
             return new_pos;
         }
+        Position direction_to(const Position& to) const
+        {
+            Position delta = to - *this;
+            delta.rank = sign(delta.rank);
+            delta.file = sign(delta.file);
+            return delta;
+        }
     };
 }
+
+std::ostream& operator<<(std::ostream& out, const Skaia::Position& pos);
 

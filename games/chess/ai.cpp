@@ -2,6 +2,8 @@
 
 #include "ai.h"
 
+#include "SkaiaTest.h"
+
 
 /// <summary>
 /// This returns your AI's name to the game server. Just replace the string.
@@ -18,7 +20,7 @@ std::string Chess::AI::getName()
 void Chess::AI::start()
 {
     // This is a good place to initialize any variables you add to your AI, or start tracking game objects.
-    state.initialize();
+    SkaiaTest();
 }
 
 /// <summary>
@@ -137,6 +139,7 @@ bool Chess::AI::runTurn()
     std::cout << "Generating moves..." << std::endl;
     auto moves = state.generate_actions();
     std::cout << "Playing random move..." << std::endl;
+    if (moves.size() == 0) std::cout << "No moves found!" << std::endl;
     auto move = moves[rand() % moves.size()];
     // Make move through framework
     auto from_rank = Skaia::rank_from_skaia(move.from.rank);
