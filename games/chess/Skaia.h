@@ -41,6 +41,7 @@ namespace Skaia
         Position& operator=(Position&& source) = default;
         bool operator==(const Position& rhs) const { return rank == rhs.rank && file == rhs.file; }
         bool operator!=(const Position& rhs) const { return rank != rhs.rank || file != rhs.file; }
+        bool operator<(const Position& rhs) const { return rank < rhs.rank || (rank == rhs.rank && file < rhs.file); }
         Position& operator+=(const Position& rhs) { rank += rhs.rank; file += rhs.file; }
         Position& operator-=(const Position& rhs) { rank -= rhs.rank; file -= rhs.file; }
         Position& operator*=(int factor) { rank *= factor; file *= factor; }

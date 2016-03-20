@@ -2,12 +2,13 @@
 
 #include <algorithm>
 #include <iterator>
+#include <set>
 
-//#if TRUE
+#if 1
 #define LOG(s) std::cout<<s<<std::endl
-//#else
+#else
 #define LOG(s)
-//#endif
+#endif
 
 namespace Skaia
 {
@@ -24,8 +25,10 @@ namespace Skaia
         };
         for (auto file = 0; file < 8; ++file)
         {
+            // Home row
             create_piece(Piece(Position(0, file), order[file], Black, file + 0*8, true));
             create_piece(Piece(Position(7, file), order[file], White, file + 3*8, true));
+            // Pawns
             create_piece(Piece(Position(1, file), Pawn, Black, file + 1*8, true));
             create_piece(Piece(Position(6, file), Pawn, White, file + 2*8, true));
         }
@@ -95,16 +98,17 @@ namespace Skaia
         return inside(pos) && at(pos).piece != nullptr && at(pos).piece->color != piece->color;
     }
 
-    Position State::ray(const Piece* piece, const Position& delta) const
+    void State::check_piece(const Piece* piece, bool check)
     {
-        Position new_pos = piece->pos;
-        for (auto i = 0; i < 8; ++i)
+        switch (piece->type)
         {
-            new_pos += delta;
-            if (!canTake(piece, new_pos)) return new_pos - delta;
-            if (canKill(piece, new_pos)) return new_pos;
+            case Pawn: check_pawn(piece, check); break;
+            case Bishop: check_bishop(piece, check); break;
+            case Knight: check_knight(piece, check); break;
+            case Rook: check_rook(piece, check); break;
+            case Queen: check_bishop(piece, check); check_rook(piece, check); break;
+            case King: check_king(piece, check); break;
         }
-        return new_pos;
     }
 
     void State::check_ray(const Piece* piece, const Position& delta, bool check)
@@ -202,38 +206,65 @@ namespace Skaia
         // Place piece at location
         piece->pos = pos;
         at(pos).piece = piece;
-        // Update sight lines for other pieces
+        // Update possible moves
+        if (at(pos).checks.any())
+        {
+            auto& checks = at(pos).checks;
+            // TODO: Optimize with CLZ instruction
+            for (int i = 0; i < checks.size(); ++i)
+            {
+                if (checks[i])
+                {
+                    auto& attacker = pieces[i];
+                    attacker.moves.clear();
+                    possible_piece_moves(&attacker, attacker.moves);
+                }
+            }
+        }
+        // Update sight lines and moves for other pieces
         for (auto i : need_updating)
         {
             check_ray(i.first, i.second, true);
+            i.first->moves.clear();
+            possible_piece_moves(i.first, i.first->moves);
         }
-        // Update sight lines for this piece
-        switch (piece->type)
+        // Update nearby pawns
+        for (auto& pos : std::vector<Position>{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}})
         {
-            case Pawn: check_pawn(piece, true); break;
-            case Bishop: check_bishop(piece, true); break;
-            case Knight: check_knight(piece, true); break;
-            case Rook: check_rook(piece, true); break;
-            case Queen: check_bishop(piece, true); check_rook(piece, true); break;
-            case King: check_king(piece, true); break;
+            Position new_pos = piece->pos + pos;
+            if (inside(new_pos) && at(new_pos).piece != nullptr)
+            {
+                Piece* piece = at(new_pos).piece;
+                piece->moves.clear();
+                possible_piece_moves(piece, piece->moves);
+            }
         }
+        // Update sight lines and moves for this piece
+        check_piece(piece, true);
+        piece->moves.clear();
+        possible_piece_moves(piece, piece->moves);
     }
 
-    void State::remove_piece(const Piece* piece)
+    void State::remove_piece(Piece* piece)
     {
         LOG("remove_piece");
-        // Remove own checks
-        switch (piece->type)
-        {
-            case Pawn: check_pawn(piece, false); break;
-            case Bishop: check_bishop(piece, false); break;
-            case Knight: check_knight(piece, false); break;
-            case Rook: check_rook(piece, false); break;
-            case Queen: check_bishop(piece, false); check_rook(piece, false); break;
-            case King: check_king(piece, false); break;
-        }
+        // Remove own checks and moves
+        check_piece(piece, false);
+        piece->moves.clear();
+
         // Remove from board
         at(piece->pos).piece = nullptr;
+        // Update nearby pawns
+        for (auto& pos : std::vector<Position>{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}})
+        {
+            Position new_pos = piece->pos + pos;
+            if (inside(new_pos) && at(new_pos).piece != nullptr)
+            {
+                Piece* piece = at(new_pos).piece;
+                piece->moves.clear();
+                possible_piece_moves(piece, piece->moves);
+            }
+        }
         // Check for blocking other pieces
         if (at(piece->pos).checks.any())
         {
@@ -243,6 +274,10 @@ namespace Skaia
                 if (checks[i])
                 {
                     auto& attacker = pieces[i];
+                    // Update moves
+                    attacker.moves.clear();
+                    possible_piece_moves(&attacker, attacker.moves);
+                    // Update ray checks
                     switch (attacker.type)
                     {
                         case Bishop:
@@ -256,6 +291,16 @@ namespace Skaia
         }
     }
 
+    void State::kill_piece(Piece* piece)
+    {
+        LOG("kill_piece");
+        remove_piece(piece);
+        // Set dead and remove from pieces_by_color_and_type
+        piece->alive = false;
+        auto& v = pieces_by_color_and_type[piece->color][piece->type];
+        v.erase(std::find(v.begin(), v.end(), piece));
+    }
+
     void State::move_piece(const Position& from, const Position& to)
     {
         Piece* piece = at(from).piece;
@@ -266,7 +311,7 @@ namespace Skaia
     void State::apply_action(const Action& action)
     {
         LOG("apply_action");
-        double_moved_pawn = nullptr;
+        Piece* new_double_moved_pawn = nullptr;
 
         State::Square& from = at(action.from);
         State::Square& to = at(action.to);
@@ -308,7 +353,7 @@ namespace Skaia
                 if (action.promotion == Pawn) // Double move
                 {
                     move_piece(action.from, action.to);
-                    double_moved_pawn = at(action.to).piece;
+                    new_double_moved_pawn = at(action.to).piece;
                     at(action.to).piece->special = false;
                 }
                 else // En passant
@@ -316,8 +361,7 @@ namespace Skaia
                     LOG("En passant");
                     move_piece(action.from, action.to);
                     Piece* piece = at(action.from.rank, action.to.file).piece;
-                    to.piece->alive = false;
-                    remove_piece(piece);
+                    kill_piece(piece);
                 }
             }
         }
@@ -326,18 +370,51 @@ namespace Skaia
         {
             if (to.piece != nullptr)
             {
-                to.piece->alive = false;
-                remove_piece(to.piece);
+                kill_piece(to.piece);
             }
             move_piece(action.from, action.to);
             to.piece->special = false;
         }
-        turn += 1;
-    }
 
-    bool State::is_in_check(Color color) const
-    {
-        return at(pieces_by_color_and_type[color][King][0]->pos).checked_by_color(!color ? Black : White);
+        // Remove moves to en-passant the previously double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            // Update double_moved_pawn so that this actually removes moves
+            double_moved_pawn = new_double_moved_pawn;
+            // Remove moves
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+        }
+        // Update double_moved_pawn so that moves are added
+        double_moved_pawn = new_double_moved_pawn;
+        // Add the moves to en-passant the currently double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+        }
+
+        turn += 1;
     }
 
     std::vector<Action> State::generate_actions() const
@@ -348,20 +425,35 @@ namespace Skaia
         {
             if (piece.alive && piece.color == turn % 2)
             {
-                switch (piece.type)
-                {
-                    case Pawn: possible_pawn_moves(&piece, actions); break;
-                    case Bishop: possible_bishop_moves(&piece, actions); break;
-                    case Knight: possible_knight_moves(&piece, actions); break;
-                    case Rook: possible_rook_moves(&piece, actions); break;
-                    case Queen:
-                               possible_bishop_moves(&piece, actions);
-                               possible_rook_moves(&piece, actions);
-                               break;
-                    case King: possible_king_moves(&piece, actions); break;
-                }
+                possible_piece_moves(&piece, actions);
             }
         }
+        std::vector<Action> actions2;
+        auto inserter = std::back_inserter(actions2);
+        for (auto&& piece : pieces)
+        {
+            if (piece.alive && piece.color == turn % 2)
+            {
+                std::copy(piece.moves.begin(), piece.moves.end(), inserter);
+            }
+        }
+        std::set<Action> a(actions.begin(), actions.end());
+        std::set<Action> b(actions2.begin(), actions2.end());
+        if (a != b)
+        {
+            std::cerr << "Moves not the same" << std::endl;
+            for (auto&& action : actions)
+            {
+                std::cerr << action << std::endl;
+            }
+            std::cerr << "actions2:" << std::endl;
+            for (auto&& action : actions2)
+            {
+                std::cerr << action << std::endl;
+            }
+            std::cerr << "State: " << *this;
+        }
+
         // Remove actions which would put the moving player into check
         std::vector<Action> safe_actions;
         std::remove_copy_if(actions.begin(), actions.end(), std::back_inserter(safe_actions),
@@ -373,9 +465,27 @@ namespace Skaia
         return safe_actions;
     }
 
+    bool State::is_in_check(Color color) const
+    {
+        return at(pieces_by_color_and_type[color][King][0]->pos).checked_by_color(!color ? Black : White);
+    }
+
     void State::try_take(const Piece* piece, const Position& to, std::vector<Action>& actions) const
     {
         if (canTake(piece, to)) actions.emplace_back(piece->pos, to, Empty);
+    }
+
+    void State::possible_piece_moves(const Piece* piece, std::vector<Action>& actions) const
+    {
+        switch (piece->type)
+        {
+            case Pawn: possible_pawn_moves(piece, actions); break;
+            case Bishop: possible_bishop_moves(piece, actions); break;
+            case Knight: possible_knight_moves(piece, actions); break;
+            case Rook: possible_rook_moves(piece, actions); break;
+            case Queen: possible_bishop_moves(piece, actions); possible_rook_moves(piece, actions); break;
+            case King: possible_king_moves(piece, actions); break;
+        }
     }
 
     void State::pawn_move_with_promotions(const Piece* piece, const Position& to, std::vector<Action>& actions) const
@@ -485,6 +595,24 @@ namespace Skaia
             }
         }
     }
+
+    int State::material(Color color) const
+    {
+        static const std::array<std::pair<Type, int>, 6> types = {{
+            {Pawn, 1},
+            {Bishop, 3},
+            {Knight, 3},
+            {Rook, 5},
+            {Queen, 9},
+            {King, 0}
+        }};
+        int total_value = 0;
+        for (auto& type : types)
+        {
+            total_value += type.second * pieces_by_color_and_type[color][type.first].size();
+        }
+        return total_value;
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const Skaia::State& state)
@@ -504,5 +632,5 @@ std::ostream& operator<<(std::ostream& out, const Skaia::State& state)
     return out;
 }
 
-//#undef LOG
+#undef LOG
 

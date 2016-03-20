@@ -1,6 +1,6 @@
 #pragma once
 
-// A memory-efficient class for storing state information
+// A class representing a board state along with functions for interacting with that state.
 
 #include <bitset>
 #include <array>
@@ -34,14 +34,17 @@ namespace Skaia
             std::array<Piece, 32> pieces;
             std::array<Square, 8 * 8> squares;
             std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;
-            Piece* double_moved_pawn; // Points to a pawn that is capturable by en-passant, or nullptr
+            Piece* double_moved_pawn; // Points to the one pawn that is capturable by en-passant, or nullptr
 
+            // Default constructor initializes state to the beginning of a normal chess game
             State();
             State(const State& source);
 
-            // Check if a position is on the board
-            static bool inside(int rank, int file) { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }
-            static bool inside(const Position& pos) { return inside(pos.rank, pos.file); }
+            // Generate a list of valid moves for the current player
+            std::vector<Action> generate_actions() const;
+
+            // Chenge the current state by applying an action
+            void apply_action(const Action& action);
 
             // Access a square
             const Square& at(int rank, int file) const;
@@ -49,12 +52,27 @@ namespace Skaia
             Square& at(int rank, int file);
             Square& at(const Position& pos);
 
+        public:
+            // Check if a position is on the board
+            static bool inside(int rank, int file) { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }
+            static bool inside(const Position& pos) { return inside(pos.rank, pos.file); }
+
             // Check if a position is good for a piece to move to
             bool empty(const Position& pos) const;
-            bool canTake(const Piece* piece, const Position& pos) const;
-            bool canKill(const Piece* piece, const Position& pos) const;
+            bool canTake(const Piece* piece, const Position& pos) const; // Position is empty or contains an enemy piece
+            bool canKill(const Piece* piece, const Position& pos) const; // Position contains an enemy piece
 
             // Ray-casting functions
+            // These functions apply a func to all the tiles starting at position + delta and
+            //  moving the direction of delta until the given piece cannot reach the
+            //  position in the current turn.
+            // For example, if a queen at position (0,0) is used as the starting piece,
+            //  and (1,0) is given as the delta, then func() is called with all positions
+            //  from (1,0) to (7,0).
+            // If an enemy pawn were at position (5,0) then only positions (1,0) to (5,0)
+            //  would be considered.
+            // If a friendly pawn were at position (5,0) then only positions (1,0) to (4,0)
+            //  would be considered.
             template<typename F> void ray_action(const Piece* piece, const Position& delta, F func)
             {
                 if (delta.rank == 0 && delta.file == 0)
@@ -67,22 +85,6 @@ namespace Skaia
                 {
                     new_pos += delta;
                     if (!canTake(piece, new_pos)) break;
-                    func(new_pos);
-                    if (!empty(new_pos)) break;
-                }
-            }
-            template<typename F> void ray_action(const Position& from, const Position& delta, F func)
-            {
-                if (delta.rank == 0 && delta.file == 0)
-                {
-                    std::cerr << "No delta!" << std::endl;
-                    return;
-                }
-                Position new_pos = from;
-                while (true)
-                {
-                    new_pos += delta;
-                    if (!inside(new_pos)) break;
                     func(new_pos);
                     if (!empty(new_pos)) break;
                 }
@@ -103,9 +105,28 @@ namespace Skaia
                     if (!empty(new_pos)) break;
                 }
             }
-            Position ray(const Piece* piece, const Position& delta) const;
+            // This version of raw_action considers all pieces to be enemy pieces, and so
+            //  will apply func() to all positions including the first encountered piece,
+            //  whether friend or foe.
+            template<typename F> void ray_action(const Position& from, const Position& delta, F func)
+            {
+                if (delta.rank == 0 && delta.file == 0)
+                {
+                    std::cerr << "No delta!" << std::endl;
+                    return;
+                }
+                Position new_pos = from;
+                while (true)
+                {
+                    new_pos += delta;
+                    if (!inside(new_pos)) break;
+                    func(new_pos);
+                    if (!empty(new_pos)) break;
+                }
+            }
 
             // Functions for setting check
+            void check_piece(const Piece* piece, bool check);
             void check_ray(const Piece* piece, const Position& delta, bool check);
             void check_pos(const Piece* piece, const Position& pos, bool check);
             void check_pawn(const Piece* piece, bool check);
@@ -116,21 +137,16 @@ namespace Skaia
 
             // Functions for moving pieces around the board
             void place_piece(Piece* piece, const Position& pos);
-            void remove_piece(const Piece* piece);
+            void remove_piece(Piece* piece); // Temporarily take the piece off the board
+            void kill_piece(Piece* piece); // Make it dead
             void move_piece(const Position& from, const Position& to);
-
-            int distance_from_back_rank(Color color, int rank) const
-            {
-                return color ? 7 - rank : rank;
-            }
-
-            void apply_action(const Action& action);
 
             // Functions for generating moves
             bool is_in_check(Color color) const;
-            std::vector<Action> generate_actions() const;
-
+            // These functions all take a vector<Action> by reference and add moves this vector
+            // TODO: Make them take an output iterator (such as a back_inserter)
             void try_take(const Piece* piece, const Position& to, std::vector<Action>& actions) const;
+            void possible_piece_moves(const Piece* piece, std::vector<Action>& actions) const;
             void pawn_move_with_promotions(const Piece* piece, const Position& to, std::vector<Action>& actions) const;
             void possible_pawn_moves(const Piece* piece, std::vector<Action>& actions) const;
             void line_moves(const Piece* piece, const Position& delta, std::vector<Action>& actions) const;
@@ -138,6 +154,9 @@ namespace Skaia
             void possible_rook_moves(const Piece* piece, std::vector<Action>& actions) const;
             void possible_knight_moves(const Piece* piece, std::vector<Action>& actions) const;
             void possible_king_moves(const Piece* piece, std::vector<Action>& actions) const;
+
+            // Heuristic functions
+            int material(Color color) const;
     };
 
     /*

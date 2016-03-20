@@ -17,9 +17,19 @@ namespace Skaia
             Action(const Position& from, const Position& to, Type promotion) :
                 from(from), to(to), promotion(promotion) {}
 
-            bool operator!=(const Action& rhs)
+            bool operator==(const Action& rhs) const
+            {
+                return from == rhs.from && to == rhs.to && promotion == rhs.promotion;
+            }
+            bool operator!=(const Action& rhs) const
             {
                 return from != rhs.from && to != rhs.to && promotion != rhs.promotion;
+            }
+            bool operator<(const Action& rhs) const
+            {
+                return (from < rhs.from || (from == rhs.from &&
+                        to < rhs.to || (to == rhs.to &&
+                        promotion < rhs.promotion)));
             }
     };
 
