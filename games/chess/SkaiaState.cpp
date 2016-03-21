@@ -4,7 +4,7 @@
 #include <iterator>
 #include <set>
 
-#if 1
+#if 0
 #define LOG(s) std::cout<<s<<std::endl
 #else
 #define LOG(s)
@@ -13,7 +13,8 @@
 namespace Skaia
 {
     State::State() : turn(0), pieces(), squares(),
-        pieces_by_color_and_type(), double_moved_pawn(nullptr)
+        pieces_by_color_and_type(), double_moved_pawn(nullptr), history(7),
+        since_pawn_or_capture(0)
     {
         // Generate pieces
         static const std::vector<Type> order = {Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook};
@@ -40,7 +41,8 @@ namespace Skaia
     }
 
     State::State(const State& source) : turn(source.turn), pieces(source.pieces), squares(),
-        pieces_by_color_and_type(), double_moved_pawn(nullptr)
+        pieces_by_color_and_type(), double_moved_pawn(nullptr), history(source.history),
+        since_pawn_or_capture(source.since_pawn_or_capture)
     {
         auto make_pointer = [&, this](const Piece* piece) {
             return piece == nullptr ? nullptr : &(this->pieces[piece->id]);
@@ -51,7 +53,7 @@ namespace Skaia
             squares[i].piece = make_pointer(source.squares[i].piece);
             squares[i].checks = source.squares[i].checks;
         }
-        // Copy pieces_by
+        // Copy pieces_by_color_and_type
         for (auto color = 0; color < 2; ++color)
         {
             for (auto type = 0; type < NumberOfTypes; ++type)
@@ -66,6 +68,20 @@ namespace Skaia
         }
         // Copy double pawn
         double_moved_pawn = make_pointer(source.double_moved_pawn);
+    }
+
+    bool State::draw() const
+    {
+        if (since_pawn_or_capture ==50) return true;
+        if (history.size() == 7)
+        {
+            return
+                history[0] == history[4] &&
+                history[1] == history[5] &&
+                history[2] == history[6] &&
+                history[3] == to_simple();
+        }
+        return false;
     }
 
     const State::Square& State::at(int rank, int file) const
@@ -299,6 +315,7 @@ namespace Skaia
         piece->alive = false;
         auto& v = pieces_by_color_and_type[piece->color][piece->type];
         v.erase(std::find(v.begin(), v.end(), piece));
+        since_pawn_or_capture = 0;
     }
 
     void State::move_piece(const Position& from, const Position& to)
@@ -311,6 +328,10 @@ namespace Skaia
     void State::apply_action(const Action& action)
     {
         LOG("apply_action");
+        // Record this state so we can check for draws later
+        history.push_back(to_simple());
+        since_pawn_or_capture += 1;
+
         Piece* new_double_moved_pawn = nullptr;
 
         State::Square& from = at(action.from);
@@ -335,6 +356,7 @@ namespace Skaia
                 piece->type = action.promotion;
                 pieces_by_color_and_type[piece->color][piece->type].emplace_back(piece);
                 place_piece(piece, piece->pos);
+                since_pawn_or_capture = 0;
             }
             // Castling
             else if (from.piece->type == King && std::abs(static_cast<int>(action.from.file - action.to.file)) == 2)
@@ -355,6 +377,7 @@ namespace Skaia
                     move_piece(action.from, action.to);
                     new_double_moved_pawn = at(action.to).piece;
                     at(action.to).piece->special = false;
+                    since_pawn_or_capture = 0;
                 }
                 else // En passant
                 {
@@ -374,6 +397,10 @@ namespace Skaia
             }
             move_piece(action.from, action.to);
             to.piece->special = false;
+            if (to.piece->type == Pawn)
+            {
+                since_pawn_or_capture = 0;
+            }
         }
 
         // Remove moves to en-passant the previously double-moved pawn
@@ -385,6 +412,7 @@ namespace Skaia
             // Remove moves
             if (inside(adjacent) && at(adjacent).piece != nullptr)
             {
+                // TODO: Combine possible_piece_moves and clear()
                 at(adjacent).piece->moves.clear();
                 possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
             }
@@ -417,9 +445,75 @@ namespace Skaia
         turn += 1;
     }
 
+    void State::apply_back_action(const BackAction& action)
+    {
+        LOG("apply_back_action");
+
+        // Remove the moves to en-passant the currently double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            // Update double_moved_pawn so that this actually removes moves
+            double_moved_pawn = action.previous_double_moved_pawn;
+            // Remove moves
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+        }
+        // Update double_moved_pawn so that moves are added
+        double_moved_pawn = action.previous_double_moved_pawn;
+        // Add the moves to en-passant the previously double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                // TODO: Combine possible_piece_moves and clear()
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+        }
+
+        // Move attacking piece back
+        if (action.type != Empty)
+        {
+
+        }
+        else
+        // Normal move
+        {
+            Piece& actor = pieces[action.actor_piece.id];
+            remove_piece(&actor);
+            actor = action.actor_piece;
+            if (action.taken_piece.id != -1) // If a piece was taken
+            {
+                Piece& taken = pieces[action.taken_piece.id];
+                taken = action.taken_piece;
+                place_piece(&taken, taken.pos);
+            }
+        }
+
+        history.push_front(action.old_state);
+    }
+
     std::vector<Action> State::generate_actions() const
     {
         LOG("generate_actions");
+        /*
         std::vector<Action> actions;
         for (auto&& piece : pieces)
         {
@@ -428,8 +522,9 @@ namespace Skaia
                 possible_piece_moves(&piece, actions);
             }
         }
-        std::vector<Action> actions2;
-        auto inserter = std::back_inserter(actions2);
+        */
+        std::vector<Action> actions;
+        auto inserter = std::back_inserter(actions);
         for (auto&& piece : pieces)
         {
             if (piece.alive && piece.color == turn % 2)
@@ -437,6 +532,7 @@ namespace Skaia
                 std::copy(piece.moves.begin(), piece.moves.end(), inserter);
             }
         }
+        /*
         std::set<Action> a(actions.begin(), actions.end());
         std::set<Action> b(actions2.begin(), actions2.end());
         if (a != b)
@@ -453,6 +549,7 @@ namespace Skaia
             }
             std::cerr << "State: " << *this;
         }
+        */
 
         // Remove actions which would put the moving player into check
         std::vector<Action> safe_actions;
@@ -612,6 +709,39 @@ namespace Skaia
             total_value += type.second * pieces_by_color_and_type[color][type.first].size();
         }
         return total_value;
+    }
+
+    SimpleSmallState State::to_simple() const
+    {
+        auto convert_piece = [&](const Piece* piece) {
+            return piece == nullptr ? 0 : (
+                    static_cast<uint64_t>(piece->type) +
+                    (static_cast<uint64_t>(piece->color) << 3));
+        };
+        auto convert_two_rows = [&](int start) -> uint64_t {
+            return
+                (convert_piece(squares[start++].piece) << 0 ) +
+                (convert_piece(squares[start++].piece) << 4 ) +
+                (convert_piece(squares[start++].piece) << 8 ) +
+                (convert_piece(squares[start++].piece) << 12) +
+                (convert_piece(squares[start++].piece) << 16) +
+                (convert_piece(squares[start++].piece) << 20) +
+                (convert_piece(squares[start++].piece) << 24) +
+                (convert_piece(squares[start++].piece) << 28) +
+                (convert_piece(squares[start++].piece) << 32) +
+                (convert_piece(squares[start++].piece) << 36) +
+                (convert_piece(squares[start++].piece) << 40) +
+                (convert_piece(squares[start++].piece) << 44) +
+                (convert_piece(squares[start++].piece) << 48) +
+                (convert_piece(squares[start++].piece) << 52) +
+                (convert_piece(squares[start++].piece) << 56) +
+                (convert_piece(squares[start++].piece) << 60);
+        };
+        return SimpleSmallState{{convert_two_rows(0),
+            convert_two_rows(16),
+            convert_two_rows(32),
+            convert_two_rows(48),
+        }};
     }
 }
 

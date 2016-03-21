@@ -16,8 +16,8 @@ namespace Skaia
             Color color; // 0=white, 1=black
             int id;
             bool alive; // Whether or not this piece is still a part of the game
-            int special; // True if this piece has never moved
             std::vector<Action> moves; // A vector of all possible moves this piece can make
+            int special; // True if this piece has never moved
 
             // For pawns, bishops, rooks, kings, and queens, this variable tells how far the piece
             //  can move in each of the 8 directions starting with (-1, 0), then (-1, 1).

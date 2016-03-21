@@ -3,6 +3,9 @@
 #include "ai.h"
 
 #include "SkaiaTest.h"
+#include "SkaiaMM.h"
+
+#include <chrono>
 
 
 /// <summary>
@@ -154,33 +157,45 @@ bool Chess::AI::runTurn()
     }
     state.turn = this->game->currentTurn;
 
-    // Select random move to make
-    srand(time(NULL));
-    auto moves = state.generate_actions();
-    if (moves.size() == 0) std::cerr << "No moves found!" << std::endl;
-    auto move = moves[rand() % moves.size()];
-    // Print all moves which the selected action's piece could make
-    for (auto&& action : moves)
+    // IDDL-MM
+    int depth = 1;
+    // Record time
+    auto genesis = std::chrono::steady_clock::now();
+    while (true)
     {
-        if (action.from == move.from)
+        // Minimax
+        auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth);
+
+        // Check time
+        std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
+        // Go deeper if we haven't reached 2 seconds
+        if (duration.count() < 2.0)
         {
-            std::cout << action << std::endl;
+            depth += 1;
+            continue;
         }
-    }
-    // Make move through framework
-    auto from_rank = Skaia::rank_from_skaia(move.from.rank);
-    auto from_file = Skaia::file_from_skaia(move.from.file);
-    auto to_rank = Skaia::rank_from_skaia(move.to.rank);
-    auto to_file = Skaia::file_from_skaia(move.to.file);
-    for (auto&& piece : this->player->pieces)
-    {
-        if (piece->rank == from_rank && piece->file == from_file)
+        std::cout << "Took " << duration.count() << " seconds for depth=" << depth << std::endl;
+        std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
+        
+        // Make move through framework
+        auto move = ret.action;
+        auto from_rank = Skaia::rank_from_skaia(move.from.rank);
+        auto from_file = Skaia::file_from_skaia(move.from.file);
+        auto to_rank = Skaia::rank_from_skaia(move.to.rank);
+        auto to_file = Skaia::file_from_skaia(move.to.file);
+        for (auto&& piece : this->player->pieces)
         {
-            piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
+            if (piece->rank == from_rank && piece->file == from_file)
+            {
+                piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
+            }
         }
+        // Apply move to state
+        state.apply_action(move);
+
+        break;
     }
-    // Apply move to state
-    state.apply_action(move);
 
     return true; // to signify we are done with our turn.
 }
+

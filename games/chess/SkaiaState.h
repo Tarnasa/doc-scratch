@@ -5,8 +5,13 @@
 #include <bitset>
 #include <array>
 #include <iostream> // TODO: Remove this
+#include <cstdint>
+
+#include <boost/circular_buffer.hpp>
 
 #include "SkaiaAction.h"
+#include "SkaiaBackAction.h"
+#include "SkaiaSimpleSmallState.h"
 #include "SkaiaPiece.h"
 #include "Skaia.h"
 
@@ -15,6 +20,7 @@ namespace Skaia
     class State
     {
         public:
+            // A square tile on the chess board
             struct Square
             {
                 Piece* piece;
@@ -35,6 +41,8 @@ namespace Skaia
             std::array<Square, 8 * 8> squares;
             std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;
             Piece* double_moved_pawn; // Points to the one pawn that is capturable by en-passant, or nullptr
+            boost::circular_buffer<SimpleSmallState> history; // For detecting draws
+            int since_pawn_or_capture;
 
             // Default constructor initializes state to the beginning of a normal chess game
             State();
@@ -45,6 +53,10 @@ namespace Skaia
 
             // Chenge the current state by applying an action
             void apply_action(const Action& action);
+            void apply_back_action(const BackAction& action);
+
+            // Detect draw
+            bool draw() const;
 
             // Access a square
             const Square& at(int rank, int file) const;
@@ -157,22 +169,24 @@ namespace Skaia
 
             // Heuristic functions
             int material(Color color) const;
+
+            // Convert to SmallState
+            SimpleSmallState to_simple() const;
     };
 
-    /*
+
     class SmallState
     {
         public:
-            constexpr size_t type_bitsize = 3; // Empty,Pawn,Rook,Knight,Bishop,Queen,King
-            constexpr size_t color_bitsize = 1; // 0=White,1=Black
-            constexpr size_t w_checked_bitsize = 2; // Number of white pieces checking this square (max 4)
-            constexpr size_t b_checked_bitsize = 2; // Number of black pieces checking this square (max 4)
-            constexpr size_t special_bitsize = 1; // For pawns, whether the piece has just moved.  For kings and rooks Whether the piece has ever moved.
-            constexpr size_t square_bitsize = type_bitsize + color_bitsize + w_checked_bitsize + b_checked_bitsize + special_bitsize;
-            constexpr size_t data_bitsize = square_bitsize * 8 * 8;
+            static constexpr size_t type_bitsize = 3; // Empty,Pawn,Rook,Knight,Bishop,Queen,King
+            static constexpr size_t color_bitsize = 1; // 0=White,1=Black
+            static constexpr size_t w_checked_bitsize = 2; // Number of white pieces checking this square (max 4)
+            static constexpr size_t b_checked_bitsize = 2; // Number of black pieces checking this square (max 4)
+            static constexpr size_t special_bitsize = 1; // For pawns, whether the piece has just moved.  For kings and rooks Whether the piece has ever moved.
+            static constexpr size_t square_bitsize = type_bitsize + color_bitsize + w_checked_bitsize + b_checked_bitsize + special_bitsize;
+            static constexpr size_t data_bitsize = square_bitsize * 8 * 8;
             std::bitset<data_bitsize> data;
     };
-    */
 }
 
 std::ostream& operator<<(std::ostream& out, const Skaia::State& state);

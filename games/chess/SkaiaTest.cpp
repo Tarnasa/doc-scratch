@@ -50,5 +50,7 @@ void SkaiaTest()
     print_checks(state, Q->id);
 
     std::cout << "material: " << state.material(White) << " " << state.material(Black) << std::endl;
+
+    std::cout << "TESTING SMALL: " << std::endl;
 }
 
