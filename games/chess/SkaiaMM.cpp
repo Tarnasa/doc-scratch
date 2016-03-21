@@ -9,15 +9,16 @@ namespace Skaia
     {
         static const Action empty_action(Position(-1, -1), Position(-1, -1), Empty);
         auto moves = state.generate_actions();
-        bool checkmate = moves.empty();
-        if (checkmate || depth_remaining == 0)
+        bool stalemate = moves.empty();
+        bool draw = state.draw();
+        if (stalemate || draw || depth_remaining == 0)
         {
-            return MMReturn{material(state, me, checkmate), empty_action, checkmate};
+            return MMReturn{material(state, me, stalemate, draw), empty_action};
         }
         else if ((state.turn % 2 ? Black : White) == me)
         {
             // Maximizing
-            MMReturn best = MMReturn{std::numeric_limits<int>::lowest(), empty_action, false};
+            MMReturn best = MMReturn{std::numeric_limits<int>::lowest(), empty_action};
             for (auto& action : moves)
             {
                 State new_state(state);
@@ -35,7 +36,7 @@ namespace Skaia
         else
         {
             // Minimizing
-            MMReturn worst = MMReturn{std::numeric_limits<int>::max(), empty_action, false};
+            MMReturn worst = MMReturn{std::numeric_limits<int>::max(), empty_action};
             for (auto& action : moves)
             {
                 State new_state(state);
@@ -51,21 +52,29 @@ namespace Skaia
         }
     }
 
-    int material(const State& state, Color me, bool checkmate)
+    int material(const State& state, Color me, bool stalemate, bool draw)
     {
         Color current = state.turn % 2 ? Black : White;
         int h = 0;
         // Account for material
         h += state.material(me) - state.material(!me ? Black : White);
+
         // Add dominating bonus for checkmate
-        if (checkmate)
+        if (stalemate)
         {
-            h += (current == me) ? -1000 : 1000;
+            if (state.is_in_check(current)) // Checkmate
+            {
+                h += (current == me) ? -1000 : 1000;
+            }
+            else
+            {
+                draw = true;
+            }
         }
+
         // Only the losing player wants a draw
-        if (state.draw())
+        if (draw)
         {
-            std::cout << "Draw" << std::endl;
             h = 0;
         }
         return h;

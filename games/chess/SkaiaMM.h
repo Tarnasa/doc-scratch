@@ -19,6 +19,6 @@ namespace Skaia
     MMReturn minimax(const State& state, Color me, int depth_remaining);
 
     // Material + bonus for checking the king
-    int material(const State& state, Color me, bool checkmate);
+    int material(const State& state, Color me, bool stalemate, bool draw);
 }
 
