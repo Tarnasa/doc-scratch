@@ -15,7 +15,7 @@ namespace Skaia
             Type type; // To signify special moves like promotion
             Piece actor_piece;
             Piece taken_piece;
-            SimpleSmallState old_state; // The eight-oldest state to be re-added to history
+            SimpleSmallState old_state; // The eighth-oldest state to be re-added to history
             Piece* previous_double_moved_pawn;
             int since_pawn_or_capture;
     };

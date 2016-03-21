@@ -4,7 +4,7 @@
 
 #include <bitset>
 #include <array>
-#include <iostream> // TODO: Remove this
+#include <iostream>
 #include <cstdint>
 
 #include <boost/circular_buffer.hpp>
@@ -41,8 +41,9 @@ namespace Skaia
             std::array<Square, 8 * 8> squares;
             std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;
             Piece* double_moved_pawn; // Points to the one pawn that is capturable by en-passant, or nullptr
-            boost::circular_buffer<SimpleSmallState> history; // For detecting draws
-            int since_pawn_or_capture;
+            // TODO: Use buffer of actions instead of states
+            boost::circular_buffer<SimpleSmallState> history; // For detecting draws by repeat
+            int since_pawn_or_capture; // For detecting draws by no pawn move or piece captured
 
             // Default constructor initializes state to the beginning of a normal chess game
             State();
@@ -57,6 +58,10 @@ namespace Skaia
 
             // Detect draw
             bool draw() const;
+
+            // Heuristic functions
+            int material(Color color) const;
+            int count_guarding_checks(Color color) const;
 
             // Access a square
             const Square& at(int rank, int file) const;
@@ -166,9 +171,6 @@ namespace Skaia
             void possible_rook_moves(const Piece* piece, std::vector<Action>& actions) const;
             void possible_knight_moves(const Piece* piece, std::vector<Action>& actions) const;
             void possible_king_moves(const Piece* piece, std::vector<Action>& actions) const;
-
-            // Heuristic functions
-            int material(Color color) const;
 
             // Convert to SmallState
             SimpleSmallState to_simple() const;

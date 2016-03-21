@@ -476,7 +476,6 @@ namespace Skaia
             Position adjacent = double_moved_pawn->pos + Position(0, 1);
             if (inside(adjacent) && at(adjacent).piece != nullptr)
             {
-                // TODO: Combine possible_piece_moves and clear()
                 at(adjacent).piece->moves.clear();
                 possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
             }
@@ -709,6 +708,48 @@ namespace Skaia
             total_value += type.second * pieces_by_color_and_type[color][type.first].size();
         }
         return total_value;
+    }
+
+    int State::count_guarding_checks(Color color) const
+    {
+        // TODO: Cache all dis
+        static const std::array<std::pair<Type, int>, 6> protect_value = {{
+            {Pawn, 1},
+            {Bishop, 3},
+            {Knight, 3},
+            {Rook, 5},
+            {Queen, 9},
+            {King, 0},
+        }};
+        /*
+        static const std::map<Type, int> check_value = {
+            {Pawn, 6},
+            {Bishop, 3},
+            {Knight, 3},
+            {Rook, 3},
+            {Queen, 2},
+            {King, 1},
+        };
+        */
+        auto count = [&](const Square& square) {
+            if (color == Black)
+            {
+                return (square.checks >> 16).count();
+            }
+            else
+            {
+                return (square.checks << 16).count();
+            }
+        };
+        int checks = 0;
+        for (auto& type : protect_value)
+        {
+            for (Piece* piece : pieces_by_color_and_type[color][type.first])
+            {
+                checks += count(at(piece->pos));
+            }
+        }
+        return checks;
     }
 
     SimpleSmallState State::to_simple() const

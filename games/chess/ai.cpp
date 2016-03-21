@@ -14,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Doc Scratch"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Chief Deputy Pyralspite"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -23,7 +23,6 @@ std::string Chess::AI::getName()
 void Chess::AI::start()
 {
     // This is a good place to initialize any variables you add to your AI, or start tracking game objects.
-    SkaiaTest();
 }
 
 /// <summary>

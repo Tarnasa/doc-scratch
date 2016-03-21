@@ -13,7 +13,7 @@ namespace Skaia
         bool draw = state.draw();
         if (stalemate || draw || depth_remaining == 0)
         {
-            return MMReturn{material(state, me, stalemate, draw), empty_action};
+            return MMReturn{heuristic(state, me, stalemate, draw), empty_action};
         }
         else if ((state.turn % 2 ? Black : White) == me)
         {
@@ -52,19 +52,21 @@ namespace Skaia
         }
     }
 
-    int material(const State& state, Color me, bool stalemate, bool draw)
+    int heuristic(const State& state, Color me, bool stalemate, bool draw)
     {
         Color current = state.turn % 2 ? Black : White;
         int h = 0;
         // Account for material
         h += state.material(me) - state.material(!me ? Black : White);
+        h *= 1000;
+        h += state.count_guarding_checks(me) - state.count_guarding_checks(!me ? Black : White);
 
         // Add dominating bonus for checkmate
         if (stalemate)
         {
             if (state.is_in_check(current)) // Checkmate
             {
-                h += (current == me) ? -1000 : 1000;
+                h += (current == me) ? -100000 : 100000;
             }
             else
             {
