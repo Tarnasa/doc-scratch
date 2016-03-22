@@ -16,7 +16,7 @@ namespace Skaia
     // looks depth_remaining ply deep from the given state and returns
     //  the best heuristic and move that leads there.
     // Min/Max player is a function of .turn variable in state.
-    MMReturn minimax(const State& state, Color me, int depth_remaining);
+    MMReturn minimax(State& state, Color me, int depth_remaining);
 
     // Material + bonus for checking the king
     int heuristic(const State& state, Color me, bool stalemate, bool draw);

@@ -5,7 +5,7 @@
 
 namespace Skaia
 {
-    MMReturn minimax(const State& state, Color me, int depth_remaining)
+    MMReturn minimax(State& state, Color me, int depth_remaining)
     {
         static const Action empty_action(Position(-1, -1), Position(-1, -1), Empty);
 
@@ -23,22 +23,14 @@ namespace Skaia
             MMReturn best = MMReturn{std::numeric_limits<int>::lowest(), empty_action};
             for (auto& action : moves)
             {
-                State new_state(state);
-                auto back_action = new_state.apply_action(action);
-                auto ret = minimax(new_state, me, depth_remaining - 1);
+                auto back_action = state.apply_action(action);
+                auto ret = minimax(state, me, depth_remaining - 1);
                 if (ret.heuristic > best.heuristic)
                 {
                     best = ret;
                     best.action = action;
                 }
-                new_state.apply_back_action(back_action);
-                if (!(new_state == state))
-                {
-                    std::cerr << "We're diverging!" << std::endl;
-                    std::cerr << "Witness: " << type_from_skaia(state.at(action.from).piece->type) << std::endl;
-                    std::cerr << "Culprit action: " << action << std::endl;
-                    std::cerr << "Crime scene: " << state << std::endl;
-                }
+                state.apply_back_action(back_action);
             }
             return best;
         }
@@ -48,22 +40,14 @@ namespace Skaia
             MMReturn worst = MMReturn{std::numeric_limits<int>::max(), empty_action};
             for (auto& action : moves)
             {
-                State new_state(state);
-                auto back_action = new_state.apply_action(action);
-                auto ret = minimax(new_state, me, depth_remaining - 1);
+                auto back_action = state.apply_action(action);
+                auto ret = minimax(state, me, depth_remaining - 1);
                 if (ret.heuristic < worst.heuristic)
                 {
                     worst = ret;
                     worst.action = action;
                 }
-                new_state.apply_back_action(back_action);
-                if (!(new_state == state))
-                {
-                    std::cerr << "We're diverging!" << std::endl;
-                    std::cerr << "Witness: " << type_from_skaia(state.at(action.from).piece->type) << std::endl;
-                    std::cerr << "Culprit action: " << action << std::endl;
-                    std::cerr << "Crime scene: " << state << std::endl;
-                }
+                state.apply_back_action(back_action);
             }
             return worst;
         }
