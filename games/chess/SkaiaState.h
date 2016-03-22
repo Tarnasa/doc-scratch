@@ -181,22 +181,6 @@ namespace Skaia
             // For testing
             bool operator==(const State& rhs) const;
     };
-
-
-    /*
-    class SmallState
-    {
-        public:
-            static constexpr size_t type_bitsize = 3; // Empty,Pawn,Rook,Knight,Bishop,Queen,King
-            static constexpr size_t color_bitsize = 1; // 0=White,1=Black
-            static constexpr size_t w_checked_bitsize = 2; // Number of white pieces checking this square (max 4)
-            static constexpr size_t b_checked_bitsize = 2; // Number of black pieces checking this square (max 4)
-            static constexpr size_t special_bitsize = 1; // For pawns, whether the piece has just moved.  For kings and rooks Whether the piece has ever moved.
-            static constexpr size_t square_bitsize = type_bitsize + color_bitsize + w_checked_bitsize + b_checked_bitsize + special_bitsize;
-            static constexpr size_t data_bitsize = square_bitsize * 8 * 8;
-            std::bitset<data_bitsize> data;
-    };
-    */
 }
 
 std::ostream& operator<<(std::ostream& out, const Skaia::State& state);

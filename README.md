@@ -34,4 +34,12 @@ The Skaia.h file contains the Position data structure, and functions to convert 
 The SkaiaAction.h file contains a structure which represents an action.
 The SkaiaPiece.h file contains a structure which represents a piece on the board.
 The SkaiaState.h file contains a structure and a buttload of functions for manipulating a state of the game.
+The SkaiaState_internal.cpp contains definitions for functions which aren't too interesting.
+The SkaiaState.cpp contains definitions for funcitons that do alot of wacky stuff.
+
+Things to note:
+The moves that a piece can make are actually a member of that piece, that way, when they need to be updated, only that piece's moves need be changed.
+Every square on the board contains a bitset which tells which other pieces can attack that square.
+
+These two caches add alot of complexity to the code, I'm sorry.
 
