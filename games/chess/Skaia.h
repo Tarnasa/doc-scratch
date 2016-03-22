@@ -21,6 +21,7 @@ namespace Skaia
     enum Color : bool {White, Black};
     static const std::vector<std::string> names = {"Empty", "Pawn", "Bishop", "Knight", "Rook", "Queen", "King"};
 
+    // Functions for converting to/from Skaia to SIG-Game's framework
     int file_to_skaia(const std::string& file);
     std::string file_from_skaia(int file);
     int rank_to_skaia(int rank);
@@ -30,6 +31,7 @@ namespace Skaia
 
     template<typename T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
+    // For representing a position on the board, or a delta position
     struct Position
     {
         int rank, file;

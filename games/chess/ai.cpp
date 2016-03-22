@@ -23,6 +23,7 @@ std::string Chess::AI::getName()
 void Chess::AI::start()
 {
     // This is a good place to initialize any variables you add to your AI, or start tracking game objects.
+    SkaiaTest();
 }
 
 /// <summary>

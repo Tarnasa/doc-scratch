@@ -10,6 +10,7 @@ namespace Skaia
         //  1 bit - color
         std::array<uint64_t, 4> data;
         bool operator==(const SimpleSmallState& rhs) const { return data == rhs.data; }
+        bool operator!=(const SimpleSmallState& rhs) const { return data != rhs.data; }
     };
 }
 

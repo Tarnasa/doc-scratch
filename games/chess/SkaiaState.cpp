@@ -325,9 +325,17 @@ namespace Skaia
         place_piece(piece, to);
     }
 
-    void State::apply_action(const Action& action)
+    BackAction State::apply_action(const Action& action)
     {
         LOG("apply_action");
+        // Create a BackAction so that we can return to this state
+        Piece null_piece;
+        SimpleSmallState old_state(history.size() == 7 ? history[0] :
+                SimpleSmallState{{{0, 0, 0, 0}}});
+        int double_moved_id = double_moved_pawn == nullptr ? -1 : double_moved_pawn->id;
+        BackAction back_action{action.promotion, Piece(*(at(action.from).piece)),
+            null_piece, old_state, double_moved_id, since_pawn_or_capture};
+
         // Record this state so we can check for draws later
         history.push_back(to_simple());
         since_pawn_or_capture += 1;
@@ -345,8 +353,8 @@ namespace Skaia
                 LOG("Promotion");
                 if (to.piece != nullptr)
                 {
-                    to.piece->alive = false;
-                    remove_piece(to.piece);
+                    back_action.taken = *(to.piece);
+                    kill_piece(to.piece);
                 }
                 Piece* piece = from.piece;
                 move_piece(action.from, action.to);
@@ -366,6 +374,9 @@ namespace Skaia
                 move_piece(action.from, action.to);
                 Position rook_from(action.from.rank, action.to.file == 2 ? 0 : 7);
                 Position rook_to(action.from.rank, action.to.file == 2 ? 3 : 5);
+                // Record old rook state
+                back_action.taken = *(at(rook_from).piece);
+                // Move rook
                 at(rook_from).piece->special = false;
                 move_piece(rook_from, rook_to);
             }
@@ -383,7 +394,10 @@ namespace Skaia
                 {
                     LOG("En passant");
                     move_piece(action.from, action.to);
+                    // Record killed pawn
                     Piece* piece = at(action.from.rank, action.to.file).piece;
+                    back_action.taken = *piece;
+                    // Kill pawn
                     kill_piece(piece);
                 }
             }
@@ -393,6 +407,7 @@ namespace Skaia
         {
             if (to.piece != nullptr)
             {
+                back_action.taken = *(to.piece);
                 kill_piece(to.piece);
             }
             move_piece(action.from, action.to);
@@ -443,18 +458,21 @@ namespace Skaia
         }
 
         turn += 1;
+        return back_action;
     }
 
     void State::apply_back_action(const BackAction& action)
     {
         LOG("apply_back_action");
+        Piece* old_double_moved_pawn = (action.double_moved_pawn_id == -1 ? nullptr :
+                &(pieces[action.double_moved_pawn_id]));
 
         // Remove the moves to en-passant the currently double-moved pawn
         if (double_moved_pawn != nullptr)
         {
             Position adjacent = double_moved_pawn->pos + Position(0, 1);
             // Update double_moved_pawn so that this actually removes moves
-            double_moved_pawn = action.previous_double_moved_pawn;
+            double_moved_pawn = old_double_moved_pawn;
             // Remove moves
             if (inside(adjacent) && at(adjacent).piece != nullptr)
             {
@@ -469,7 +487,7 @@ namespace Skaia
             }
         }
         // Update double_moved_pawn so that moves are added
-        double_moved_pawn = action.previous_double_moved_pawn;
+        double_moved_pawn = old_double_moved_pawn;
         // Add the moves to en-passant the previously double-moved pawn
         if (double_moved_pawn != nullptr)
         {
@@ -487,26 +505,93 @@ namespace Skaia
             }
         }
 
+        Piece* piece = &(pieces[action.actor.id]);
+
         // Move attacking piece back
         if (action.type != Empty)
         {
+            // Promotion
+            if (action.actor.type != piece->type)
+            {
+                remove_piece(piece);
 
+                auto& v = pieces_by_color_and_type[piece->color][piece->type];
+                v.erase(std::find(v.begin(), v.end(), piece));
+                *piece = action.actor;
+                pieces_by_color_and_type[piece->color][piece->type].emplace_back(piece);
+
+                if (action.taken.id != -1) // If a piece was taken
+                {
+                    Piece* taken = &(pieces[action.taken.id]);
+                    *taken = action.taken;
+                    pieces_by_color_and_type[taken->color][taken->type].emplace_back(taken);
+                    place_piece(taken, taken->pos);
+                }
+                place_piece(piece, piece->pos);
+            }
+            // Castleing
+            else if (action.type == King && piece->type == King)
+            {
+                // Return king
+                remove_piece(piece);
+                *piece = action.actor;
+                place_piece(piece, piece->pos);
+                // Return rook
+                Piece* taken = &(pieces[action.taken.id]);
+                remove_piece(taken);
+                *taken = action.taken;
+                place_piece(taken, taken->pos);
+            }
+            // En passant and double move
+            else if (action.actor.type == Pawn)
+            {
+                if (action.type == Pawn) // Double move
+                {
+                    remove_piece(piece);
+                    *piece = action.actor;
+                    place_piece(piece, piece->pos);
+                }
+                else // En passant
+                {
+                    remove_piece(piece);
+                    *piece = action.actor;
+                    place_piece(piece, piece->pos);
+                    // Restore taken pawn
+                    Piece* taken = &(pieces[action.taken.id]);
+                    *taken = action.taken;
+                    pieces_by_color_and_type[taken->color][taken->type].emplace_back(taken);
+                    place_piece(taken, taken->pos);
+                }
+            }
         }
         else
         // Normal move
         {
-            Piece& actor = pieces[action.actor_piece.id];
-            remove_piece(&actor);
-            actor = action.actor_piece;
-            if (action.taken_piece.id != -1) // If a piece was taken
+            remove_piece(piece);
+            *piece = action.actor;
+            if (action.taken.id != -1) // If a piece was taken
             {
-                Piece& taken = pieces[action.taken_piece.id];
-                taken = action.taken_piece;
-                place_piece(&taken, taken.pos);
+                Piece* taken = &(pieces[action.taken.id]);
+                *taken = action.taken;
+                pieces_by_color_and_type[taken->color][taken->type].emplace_back(taken);
+                place_piece(taken, taken->pos);
             }
+            place_piece(piece, piece->pos);
         }
 
-        history.push_front(action.old_state);
+        // Restore state variables
+        since_pawn_or_capture = action.since_pawn_or_capture;
+        SimpleSmallState null_state{{0, 0, 0, 0}};
+        // Add old state
+        if (action.old_state != null_state)
+        {
+            history.push_front(action.old_state);
+        }
+        else // Remove a state, we are near the beginning
+        {
+            history.pop_back();
+        }
+        turn -= 1;
     }
 
     std::vector<Action> State::generate_actions() const
@@ -710,7 +795,7 @@ namespace Skaia
         return total_value;
     }
 
-    int State::count_guarding_checks(Color color) const
+    int State::count_net_checks(Color color) const
     {
         // TODO: Cache all dis
         static const std::array<std::pair<Type, int>, 6> protect_value = {{
@@ -731,7 +816,7 @@ namespace Skaia
             {King, 1},
         };
         */
-        auto count = [&](const Square& square) {
+        auto count = [&](const Square& square, Color color) {
             if (color == Black)
             {
                 return (square.checks >> 16).count();
@@ -746,7 +831,7 @@ namespace Skaia
         {
             for (Piece* piece : pieces_by_color_and_type[color][type.first])
             {
-                checks += count(at(piece->pos));
+                checks += count(at(piece->pos), color) - count(at(piece->pos), !color ? Black : White);
             }
         }
         return checks;
@@ -778,11 +863,74 @@ namespace Skaia
                 (convert_piece(squares[start++].piece) << 56) +
                 (convert_piece(squares[start++].piece) << 60);
         };
-        return SimpleSmallState{{convert_two_rows(0),
+        return SimpleSmallState{{{convert_two_rows(0),
             convert_two_rows(16),
             convert_two_rows(32),
             convert_two_rows(48),
-        }};
+        }}};
+    }
+
+    // Testing functions
+    bool State::operator==(const State& rhs) const
+    {
+        auto check = [](bool cond, const std::string& message) {
+            if (!cond)
+            {
+                std::cerr << "Assertion: " << message << " failed" << std::endl;
+            }
+            return cond;
+        };
+        // Convenience function for comparing pointers which may be null
+        auto cmp_ptr = [](Piece* a, Piece* b) {
+            if (a == nullptr) return b == nullptr;
+            if (b == nullptr) return a == nullptr;
+            return a->id == b->id;
+        };
+        // Compare pieces_by_color_and_type
+        for (Color color : std::vector<Color>{White, Black})
+        {
+            for (Type type : std::vector<Type>{Pawn, Bishop, Knight, Rook, Queen, King})
+            {
+                if (pieces_by_color_and_type[color][type].size() !=
+                        rhs.pieces_by_color_and_type[color][type].size())
+                {
+                    std::cerr << "Assertion: pieces_by_color_and_type.size failed" << std::endl;
+                    return false;
+                }
+                std::set<int> lhs_set, rhs_set;
+                for (int i = 0; i < pieces_by_color_and_type[color][type].size(); ++i)
+                {
+                    lhs_set.insert(pieces_by_color_and_type[color][type][i]->id);
+                    rhs_set.insert(rhs.pieces_by_color_and_type[color][type][i]->id);
+                }
+                if (lhs_set != rhs_set)
+                {
+                    std::cerr << "Assertion: pieces_by_color_and_type failed" << std::endl;
+                    return false;
+                }
+            }
+        }
+        // Compare the rest of the stuff
+        return
+            check(turn == rhs.turn, "turn") &&
+            check(pieces == rhs.pieces, "pieces") &&
+            check(squares == rhs.squares, "squares") &&
+            check(cmp_ptr(double_moved_pawn, rhs.double_moved_pawn), "double") &&
+            check(history == rhs.history, "history") &&
+            check(since_pawn_or_capture == rhs.since_pawn_or_capture, "since");
+    }
+
+    bool State::Square::operator==(const Square& rhs) const
+    {
+        // Convenience function for comparing pointers which may be null
+        auto cmp_ptr = [](Piece* a, Piece* b) {
+            if (a == nullptr) return b == nullptr;
+            if (b == nullptr) return a == nullptr;
+            return a->id == b->id;
+        };
+        return
+            cmp_ptr(piece, rhs.piece) &&
+            checks == rhs.checks;
     }
 }
 
@@ -794,8 +942,12 @@ std::ostream& operator<<(std::ostream& out, const Skaia::State& state)
         for (int file = 0; file < 8; ++file)
         {
             Skaia::Piece* piece = state.at(rank, file).piece;
-            char symbol = type_chars[piece->type];
-            if (piece->color) symbol -= ('a' - 'A');
+            char symbol = '.';
+            if (piece != nullptr)
+            {
+                symbol = type_chars[piece->type];
+                if (piece->color) symbol -= ('a' - 'A');
+            }
             out << symbol << " ";
         }
         out << std::endl;

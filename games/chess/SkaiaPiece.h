@@ -6,6 +6,8 @@
 
 #include "SkaiaAction.h"
 
+#include <set>
+
 namespace Skaia
 {
     class Piece
@@ -14,7 +16,7 @@ namespace Skaia
             Position pos;
             Type type;
             Color color; // 0=white, 1=black
-            int id;
+            int id; // This will be an index into the vector of pieces
             bool alive; // Whether or not this piece is still a part of the game
             std::vector<Action> moves; // A vector of all possible moves this piece can make
             int special; // True if this piece has never moved
@@ -29,6 +31,27 @@ namespace Skaia
                 pos(pos), type(type), color(color), id(id), alive(alive), special(special) {}
             Piece(const Piece& source) = default;
             Piece& operator=(const Piece& rhs) = default;
+
+            // For testing purposes
+            bool operator==(const Piece& rhs) const
+            {
+                auto check = [](bool cond, const std::string& message) {
+                    if (!cond)
+                    {
+                        std::cerr << "Assertion: " << message << " failed" << std::endl;
+                    }
+                    return cond;
+                };
+                std::set<Action> lhs_set(moves.begin(), moves.end()), rhs_set(rhs.moves.begin(), rhs.moves.end());
+                return
+                    check(pos == rhs.pos, "piece pos") &&
+                    check(type == rhs.type, "piece type") &&
+                    check(color == rhs.color, "piece color") &&
+                    check(id == rhs.id, "piece id") &&
+                    check(alive == rhs.alive, "piece alive") &&
+                    check(lhs_set == rhs_set, "piece moves") &&
+                    check(special == rhs.special, "piece special");
+            }
     };
 }
 

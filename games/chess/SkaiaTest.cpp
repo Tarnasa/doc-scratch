@@ -2,6 +2,8 @@
 
 #include "SkaiaTest.h"
 
+#include "SkaiaBackAction.h"
+
 void print_checks(const Skaia::State& state, int piece_id)
 {
     for (int rank = 0; rank < 8; ++rank)
@@ -51,6 +53,17 @@ void SkaiaTest()
 
     std::cout << "material: " << state.material(White) << " " << state.material(Black) << std::endl;
 
-    std::cout << "TESTING SMALL: " << std::endl;
+    std::cout << "Testing copy constructor ";
+    std::cout << (state == State(state)) << std::endl;
+
+    std::cout << "Testing normal move back action ";
+    State a, b;
+    Piece empty_piece;
+    SimpleSmallState null_state{{0, 0, 0, 0}};
+    BackAction back_action{Empty, a.pieces[16], empty_piece, null_state, -1, a.since_pawn_or_capture};
+    b.apply_action(Action(a.pieces[16].pos, a.pieces[16].pos + Position(-2, 0), Empty));
+    b.apply_back_action(back_action);
+    std::cout << (a == b) << std::endl;
+    std::cout << "Testing cout of state: " << a << std::endl;
 }
 

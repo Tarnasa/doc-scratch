@@ -34,6 +34,9 @@ namespace Skaia
                 {
                     return checks.to_ulong() & (color ? 0x0000ffff : 0xffff0000);
                 }
+
+                // For testing
+                bool operator==(const Square& rhs) const;
             };
 
             size_t turn;
@@ -53,7 +56,7 @@ namespace Skaia
             std::vector<Action> generate_actions() const;
 
             // Chenge the current state by applying an action
-            void apply_action(const Action& action);
+            BackAction apply_action(const Action& action);
             void apply_back_action(const BackAction& action);
 
             // Detect draw
@@ -61,7 +64,7 @@ namespace Skaia
 
             // Heuristic functions
             int material(Color color) const;
-            int count_guarding_checks(Color color) const;
+            int count_net_checks(Color color) const;
 
             // Access a square
             const Square& at(int rank, int file) const;
@@ -172,11 +175,15 @@ namespace Skaia
             void possible_knight_moves(const Piece* piece, std::vector<Action>& actions) const;
             void possible_king_moves(const Piece* piece, std::vector<Action>& actions) const;
 
-            // Convert to SmallState
+            // Convert to SimpleSmallState
             SimpleSmallState to_simple() const;
+
+            // For testing
+            bool operator==(const State& rhs) const;
     };
 
 
+    /*
     class SmallState
     {
         public:
@@ -189,6 +196,7 @@ namespace Skaia
             static constexpr size_t data_bitsize = square_bitsize * 8 * 8;
             std::bitset<data_bitsize> data;
     };
+    */
 }
 
 std::ostream& operator<<(std::ostream& out, const Skaia::State& state);
