@@ -233,7 +233,26 @@ namespace Skaia
         history.push_back(to_simple());
         since_pawn_or_capture += 1;
 
-        Piece* new_double_moved_pawn = nullptr;
+        // Remove moves to en-passant the previously double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            // Reset double_moved_pawn so that this actually removes moves
+            double_moved_pawn = nullptr;
+            // Remove moves
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                // TODO: Combine possible_piece_moves and clear()
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+        }
 
         State::Square& from = at(action.from);
         State::Square& to = at(action.to);
@@ -279,7 +298,7 @@ namespace Skaia
                 if (action.promotion == Pawn) // Double move
                 {
                     move_piece(action.from, action.to);
-                    new_double_moved_pawn = at(action.to).piece;
+                    double_moved_pawn = at(action.to).piece;
                     at(action.to).piece->special = false;
                     since_pawn_or_capture = 0;
                 }
@@ -311,28 +330,6 @@ namespace Skaia
             }
         }
 
-        // Remove moves to en-passant the previously double-moved pawn
-        if (double_moved_pawn != nullptr)
-        {
-            Position adjacent = double_moved_pawn->pos + Position(0, 1);
-            // Update double_moved_pawn so that this actually removes moves
-            double_moved_pawn = new_double_moved_pawn;
-            // Remove moves
-            if (inside(adjacent) && at(adjacent).piece != nullptr)
-            {
-                // TODO: Combine possible_piece_moves and clear()
-                at(adjacent).piece->moves.clear();
-                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
-            }
-            adjacent += Position(0, -2);
-            if (inside(adjacent) && at(adjacent).piece != nullptr)
-            {
-                at(adjacent).piece->moves.clear();
-                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
-            }
-        }
-        // Update double_moved_pawn so that moves are added
-        double_moved_pawn = new_double_moved_pawn;
         // Add the moves to en-passant the currently double-moved pawn
         if (double_moved_pawn != nullptr)
         {
@@ -364,27 +361,9 @@ namespace Skaia
         if (double_moved_pawn != nullptr)
         {
             Position adjacent = double_moved_pawn->pos + Position(0, 1);
-            // Update double_moved_pawn so that this actually removes moves
-            double_moved_pawn = old_double_moved_pawn;
+            // Reset double_moved_pawn so that this actually removes moves
+            double_moved_pawn = nullptr;
             // Remove moves
-            if (inside(adjacent) && at(adjacent).piece != nullptr)
-            {
-                at(adjacent).piece->moves.clear();
-                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
-            }
-            adjacent += Position(0, -2);
-            if (inside(adjacent) && at(adjacent).piece != nullptr)
-            {
-                at(adjacent).piece->moves.clear();
-                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
-            }
-        }
-        // Update double_moved_pawn so that moves are added
-        double_moved_pawn = old_double_moved_pawn;
-        // Add the moves to en-passant the previously double-moved pawn
-        if (double_moved_pawn != nullptr)
-        {
-            Position adjacent = double_moved_pawn->pos + Position(0, 1);
             if (inside(adjacent) && at(adjacent).piece != nullptr)
             {
                 at(adjacent).piece->moves.clear();
@@ -470,6 +449,25 @@ namespace Skaia
                 place_piece(taken, taken->pos);
             }
             place_piece(piece, piece->pos);
+        }
+
+        // Update double_moved_pawn so that moves are added
+        double_moved_pawn = old_double_moved_pawn;
+        // Add the moves to en-passant the previously double-moved pawn
+        if (double_moved_pawn != nullptr)
+        {
+            Position adjacent = double_moved_pawn->pos + Position(0, 1);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
+            adjacent += Position(0, -2);
+            if (inside(adjacent) && at(adjacent).piece != nullptr)
+            {
+                at(adjacent).piece->moves.clear();
+                possible_piece_moves(at(adjacent).piece, at(adjacent).piece->moves);
+            }
         }
 
         // Restore state variables
