@@ -530,9 +530,11 @@ namespace Skaia
         std::vector<Action> safe_actions;
         std::remove_copy_if(actions.begin(), actions.end(), std::back_inserter(safe_actions),
                 [this](const Action& action){
-                    State new_state(*this);
-                    new_state.apply_action(action);
-                    return new_state.is_in_check(this->turn % 2 ? Black : White);
+                    State* state = const_cast<State*>(this);
+                    auto back_action = state->apply_action(action);
+                    auto checked = state->is_in_check(state->turn % 2 ? White : Black); // BAD
+                    state->apply_back_action(back_action);
+                    return checked;
                 });
         return safe_actions;
     }
