@@ -3,18 +3,13 @@
 #include <algorithm>
 #include <iterator>
 #include <set>
-
-#if 0
-#define LOG(s) std::cout<<s<<std::endl
-#else
-#define LOG(s)
-#endif
+#include <map>
 
 namespace Skaia
 {
     State::State() : turn(0), pieces(), squares(),
         pieces_by_color_and_type(), double_moved_pawn(nullptr), history(7),
-        since_pawn_or_capture(0)
+        since_pawn_or_capture(0)/*, zobrist(13315146811210211749)*/
     {
         // Generate pieces
         static const std::vector<Type> order = {Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook};
@@ -213,6 +208,7 @@ namespace Skaia
 
     void State::move_piece(const Position& from, const Position& to)
     {
+        LOG("move_piece");
         Piece* piece = at(from).piece;
         remove_piece(piece);
         place_piece(piece, to);
@@ -530,9 +526,10 @@ namespace Skaia
         std::vector<Action> safe_actions;
         std::remove_copy_if(actions.begin(), actions.end(), std::back_inserter(safe_actions),
                 [this](const Action& action){
-                    State* state = const_cast<State*>(this);
+                    LOG("generate_actions: lambda");
+                    State* state = const_cast<State*>(this); // Back action should revert all changes to the state
                     auto back_action = state->apply_action(action);
-                    auto checked = state->is_in_check(state->turn % 2 ? White : Black); // BAD
+                    auto checked = state->is_in_check(((state->turn - 1) % 2) ? Black : White);
                     state->apply_back_action(back_action);
                     return checked;
                 });
@@ -541,7 +538,7 @@ namespace Skaia
 
     bool State::is_in_check(Color color) const
     {
-        return at(pieces_by_color_and_type[color][King][0]->pos).checked_by_color(!color ? Black : White);
+        return at(pieces_by_color_and_type[color][King][0]->pos).checked_by_color(!color);
     }
 
     int State::material(Color color) const
@@ -564,25 +561,6 @@ namespace Skaia
 
     int State::count_net_checks(Color color) const
     {
-        // TODO: Cache all dis
-        static const std::array<std::pair<Type, int>, 6> protect_value = {{
-            {Pawn, 1},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 5},
-            {Queen, 9},
-            {King, 0},
-        }};
-        /*
-        static const std::map<Type, int> check_value = {
-            {Pawn, 6},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 3},
-            {Queen, 2},
-            {King, 1},
-        };
-        */
         auto count = [&](const Square& square, Color color) {
             if (color == Black)
             {
@@ -594,18 +572,93 @@ namespace Skaia
             }
         };
         int checks = 0;
-        for (auto& type : protect_value)
+        for (auto& type : std::array<Type, 6>{{Pawn, Bishop, Knight, Rook, Queen, King}})
         {
-            for (Piece* piece : pieces_by_color_and_type[color][type.first])
+            for (Piece* piece : pieces_by_color_and_type[color][type])
             {
-                checks += count(at(piece->pos), color) - count(at(piece->pos), !color ? Black : White);
+                checks += count(at(piece->pos), color) - count(at(piece->pos), !color);
             }
         }
         return checks;
     }
+    
+    int State::count_net_check_values(Color color) const
+    {
+        // TODO: Cache all dis
+        static std::map<Type, int> protect_value = {
+            {Pawn, 1},
+            {Bishop, 3},
+            {Knight, 3},
+            {Rook, 5},
+            {Queen, 9},
+            {King, 0},
+        };
+        static std::map<Type, int> check_value = {
+            {Pawn, 6},
+            {Bishop, 3},
+            {Knight, 3},
+            {Rook, 3},
+            {Queen, 2},
+            {King, 1},
+        };
+        int h = 0;
+        for (auto& type : std::array<Type, 6>{{Pawn, Bishop, Knight, Rook, Queen, King}})
+        {
+            int piece_h = 0;
+            for (Piece* piece : pieces_by_color_and_type[color][type])
+            {
+                auto &checks = at(piece->pos).checks;
+                for (int i = 0; i < checks.size(); ++i)
+                {
+                    if (checks[i])
+                    {
+                        auto &piece = pieces[i];
+                        if (piece.color == color)
+                        {
+                            h += check_value[piece.type];
+                        }
+                        else
+                        {
+                            h -= check_value[piece.type];
+                        }
+                    }
+                }
+            }
+            piece_h *= protect_value[type];
+            h += piece_h;
+        }
+        return h;
+    }
+
+    int State::count_pawn_advancement(Color color) const
+    {
+        int h = 0;
+        int starting_rank = color == White ? 6 : 1;
+        for (auto& piece : pieces_by_color_and_type[color][Pawn])
+        {
+            h += abs(piece->pos.rank - starting_rank);
+        }
+        return h;
+    }
+
+    int State::count_piece_moves(Color color) const
+    {
+        int h = 0;
+        int i = (color ? 16 : 0);
+        for (auto c = 0u; c < 16; ++c)
+        {
+            if (pieces[i].alive)
+            {
+                h += pieces[i].moves.size();
+            }
+            i += 1;
+        }
+        return h;
+    }
 
     SimpleSmallState State::to_simple() const
     {
+        LOG("to_simple");
         auto convert_piece = [&](const Piece* piece) {
             return piece == nullptr ? 0 : (
                     static_cast<uint64_t>(piece->type) +
@@ -699,6 +752,56 @@ namespace Skaia
             cmp_ptr(piece, rhs.piece) &&
             checks == rhs.checks;
     }
+
+    void State::print_debug_info(std::ostream& out) const
+    {
+        out << "Turn: " << turn << std::endl;
+        out << "Pieces: [" << std::endl;
+        for (auto &piece : pieces)
+        {
+            out << piece << "," << std::endl;
+        }
+        out << "]" << std::endl;
+        out << "Squares: [" << std::endl;
+        for (auto rank = 0u; rank < 8; ++rank)
+        {
+            for (auto file = 0u; file < 8; ++file)
+            {
+                out << (at(rank, file).piece == nullptr ? -1 : at(rank, file).piece->id);
+                out << ":" << std::hex << std::setw(sizeof(unsigned long) * 2) <<
+                    std::setfill('0') << at(rank, file).checks.to_ulong() <<
+                    std::dec << std::setw(0) << std::setfill(' ') << " ";
+            }
+            out << std::endl;
+        }
+        out << "pieces_by_color_and_type: [" << std::endl;
+        for (auto &color : std::vector<Color>{White, Black})
+        {
+            out << "  " << color << ": " << std::endl;
+            for (auto &type : std::vector<Type>{Pawn, Bishop, Knight, Rook, Queen, King})
+            {
+                out << "    " << type_from_skaia(type) << " [";
+                for (auto &piece :  pieces_by_color_and_type[color][type])
+                {
+                    out << " " << piece->id;
+                }
+                out << " ]" << std::endl;
+            }
+        }
+        out << "]" << std::endl;
+        if (double_moved_pawn == nullptr)
+            out << "Double moved pawn: None" << std::endl;
+        else
+        {
+            out << "Double moved pawn: " << double_moved_pawn->id << " at " << double_moved_pawn->pos << std::endl;
+        }
+        out << "History: [";
+        for (auto &small : history)
+        {
+            out << small << ", ";
+        }
+        out << std::endl << "since_pawn_or_capture: " << since_pawn_or_capture << std::endl;
+    }
 }
 
 std::ostream& operator<<(std::ostream& out, const Skaia::State& state)
@@ -721,6 +824,4 @@ std::ostream& operator<<(std::ostream& out, const Skaia::State& state)
     }
     return out;
 }
-
-#undef LOG
 

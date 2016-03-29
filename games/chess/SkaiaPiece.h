@@ -55,3 +55,5 @@ namespace Skaia
     };
 }
 
+std::ostream& operator<<(std::ostream& out, const Skaia::Piece& piece);
+

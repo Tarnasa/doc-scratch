@@ -5,8 +5,6 @@
 #include "SkaiaTest.h"
 #include "SkaiaMM.h"
 
-#include <chrono>
-
 
 /// <summary>
 /// This returns your AI's name to the game server. Just replace the string.
@@ -122,10 +120,17 @@ bool Chess::AI::runTurn()
     if (this->game->moves.size() > 0) {
         std::cout << "Opponent's Last Move: '" << this->game->moves[this->game->moves.size() - 1]->san << "'" << std::endl;
     }
-
-    // 3) print how much time remaining this AI has to calculate moves
-    std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
     */
+
+    // Print how much time since the end of our last turn
+    if (state.turn > 1)
+    {
+        std::chrono::duration<double> slumber = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - turn_end);
+        std::cout << "Slept for " << slumber.count() << " seconds." << std::endl;
+    }
+
+    // Print how much time remaining this AI has to calculate moves
+    std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
 
     std::cout << "Turn number: " << this->game->currentTurn << std::endl;
     // Apply previous move to state
@@ -157,6 +162,9 @@ bool Chess::AI::runTurn()
     }
     state.turn = this->game->currentTurn;
 
+    state.print_debug_info(std::cout);
+    std::cout << state << std::endl;
+
     // IDDL-MM
     int depth = 1;
     // Record time
@@ -164,7 +172,8 @@ bool Chess::AI::runTurn()
     while (true)
     {
         // Minimax
-        auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth);
+        auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
 
         // Check time
         std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
@@ -174,7 +183,8 @@ bool Chess::AI::runTurn()
             depth += 1;
             continue;
         }
-        std::cout << "Took " << duration.count() << " seconds for depth=" << depth << std::endl;
+        std::cout << "Depth: " << depth << std::endl;
+        std::cout << "Took " << duration.count() << " seconds for " << ret.states_evaluated << " states" << std::endl;
         std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
         
         // Make move through framework
@@ -195,6 +205,8 @@ bool Chess::AI::runTurn()
 
         break;
     }
+
+    turn_end = std::chrono::steady_clock::now();
 
     return true; // to signify we are done with our turn.
 }

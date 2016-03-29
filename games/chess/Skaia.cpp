@@ -22,6 +22,13 @@ namespace Skaia
     std::string type_from_skaia(Type type) { return names[type]; }
 }
 
+Skaia::Color operator!(const Skaia::Color &color) { return color ? Skaia::White : Skaia::Black; }
+
+std::ostream& operator<<(std::ostream& out, const Skaia::Color& color)
+{
+    return out << (color == Skaia::White ? "White" : "Black");
+}
+
 std::ostream& operator<<(std::ostream& out, const Skaia::Position& pos)
 {
     return out << Skaia::file_from_skaia(pos.file) << Skaia::rank_from_skaia(pos.rank);

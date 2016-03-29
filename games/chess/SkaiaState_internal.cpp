@@ -7,12 +7,6 @@
 // This file has the implementations for all the generally
 //  uninteresting functions of the State class.
 
-#if 0
-#define LOG(s) std::cout<<s<<std::endl
-#else
-#define LOG(s)
-#endif
-
 namespace Skaia
 {
     const State::Square& State::at(int rank, int file) const
@@ -249,6 +243,4 @@ namespace Skaia
         }
     }
 }
-
-#undef LOG
 

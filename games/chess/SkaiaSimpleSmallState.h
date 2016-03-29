@@ -1,5 +1,9 @@
 #pragma once
 
+#include <array>
+#include <iostream>
+#include <iomanip>
+
 namespace Skaia
 {
     // A simple state representation for checking for draws
@@ -13,4 +17,6 @@ namespace Skaia
         bool operator!=(const SimpleSmallState& rhs) const { return data != rhs.data; }
     };
 }
+
+std::ostream& operator<<(std::ostream& out, const Skaia::SimpleSmallState &sss);
 

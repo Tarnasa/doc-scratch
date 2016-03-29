@@ -5,6 +5,12 @@
 #include <string>
 #include <iostream>
 
+#if 0
+#define LOG(s) std::cout<<s<<std::endl
+#else
+#define LOG(S)
+#endif
+
 namespace Skaia
 {
     enum Type : int {Empty, Pawn, Bishop, Knight, Rook, Queen, King, NumberOfTypes};
@@ -75,5 +81,8 @@ namespace Skaia
     };
 }
 
+Skaia::Color operator!(const Skaia::Color &color);
+
+std::ostream& operator<<(std::ostream& out, const Skaia::Color& color);
 std::ostream& operator<<(std::ostream& out, const Skaia::Position& pos);
 

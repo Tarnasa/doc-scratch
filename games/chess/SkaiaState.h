@@ -5,6 +5,7 @@
 #include <bitset>
 #include <array>
 #include <iostream>
+#include <iomanip>
 #include <cstdint>
 
 #include <boost/circular_buffer.hpp>
@@ -14,6 +15,8 @@
 #include "SkaiaSimpleSmallState.h"
 #include "SkaiaPiece.h"
 #include "Skaia.h"
+
+#include "Zobrist.h"
 
 namespace Skaia
 {
@@ -47,6 +50,7 @@ namespace Skaia
             // TODO: Use buffer of actions instead of states
             boost::circular_buffer<SimpleSmallState> history; // For detecting draws by repeat
             int since_pawn_or_capture; // For detecting draws by no pawn move or piece captured
+            //Zobrist zobrist; // Hash board state
 
             // Default constructor initializes state to the beginning of a normal chess game
             State();
@@ -65,6 +69,9 @@ namespace Skaia
             // Heuristic functions
             int material(Color color) const;
             int count_net_checks(Color color) const;
+            int count_net_check_values(Color color) const;
+            int count_pawn_advancement(Color color) const;
+            int count_piece_moves(Color color) const;
 
             // Access a square
             const Square& at(int rank, int file) const;
@@ -180,6 +187,7 @@ namespace Skaia
 
             // For testing
             bool operator==(const State& rhs) const;
+            void print_debug_info(std::ostream& out) const;
     };
 }
 
