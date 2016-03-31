@@ -9,7 +9,7 @@
 class BoardChecks
 {
     public:
-        std::array<std::pair<int, int>, 8 * 8> // For each square, the heurisitc for white and black
+        std::array<std::pair<int, int>, 8 * 8> checks; // For each square, the heurisitc for white and black
 
         BoardChecks();
 
