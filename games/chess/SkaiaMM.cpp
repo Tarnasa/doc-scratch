@@ -16,6 +16,7 @@ namespace Skaia
         auto moves = state.generate_actions();
         bool stalemate = moves.empty();
         bool draw = state.draw();
+        if (draw) { LOG("Draw found"); }
         // Base case, terminal node
         if (stalemate || draw || depth_remaining == 0)
         {
@@ -97,28 +98,24 @@ namespace Skaia
         // Account for material
         h += my_material - their_material;
         h *= 1000;
-        // Net checks 
-        h += state.count_net_checks(me) - state.count_net_checks(!me);
-        h += state.count_net_check_values(me) - state.count_net_check_values(!me);
-
-        // Opening
-        if (state.turn <= 10)
-        {
-            // Mobility
-            h += (state.count_piece_moves(me) - state.count_piece_moves(!me)) * 5;
-            // TODO: Penalize early queen aggression, lest we lose tempo
-        }
-
         // Endgame
         if (their_material <= 3)
         {
             // Promote the pawns!
-            h += state.count_pawn_advancement(me) * 2;
+            h += state.count_pawn_advancement(me) * 20;
             // Force moves
             h += 8;
             h -= state.pieces_by_color_and_type[!me][King][0]->moves.size();
             // Put the king in check
             h += state.is_in_check(!me) ? 5 : 0;
+        }
+        else
+        {
+            // Net checks 
+            h += state.count_net_check_values(me) - state.count_net_check_values(!me);
+
+            // Mobility
+            h += (state.count_piece_moves(me) - state.count_piece_moves(!me)) * 3;
         }
 
         // Add dominating bonus for checkmate
@@ -126,7 +123,7 @@ namespace Skaia
         {
             if (state.is_in_check(current)) // Checkmate
             {
-                h += (current == me) ? -100000 : 100000;
+                h = (current == me) ? -100000 : 100000;
             }
             else
             {

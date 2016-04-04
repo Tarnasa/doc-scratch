@@ -15,7 +15,7 @@ namespace Skaia
             Type type; // To signify special moves like promotion
             Piece actor; // The previous state of the acting piece
             Piece taken; // The previous state of the taken piece (if one was taken), otherwise it is the default-constructed Piece
-            SimpleSmallState old_state; // The eighth-oldest state to be re-added to history, or {{0, 0, 0, 0}} if there isn't enough history
+            uint64_t old_action; // The eighth-oldest action to be re-added to history, or 0 if there isn't enough history
             int double_moved_pawn_id; // -1 if there was no previously double moved pawn
             int since_pawn_or_capture;
     };

@@ -8,7 +8,7 @@
 namespace Skaia
 {
     State::State() : turn(0), pieces(), squares(),
-        pieces_by_color_and_type(), double_moved_pawn(nullptr), history(7),
+        pieces_by_color_and_type(), double_moved_pawn(nullptr), history(8),
         since_pawn_or_capture(0)/*, zobrist(13315146811210211749)*/
     {
         // Generate pieces
@@ -67,14 +67,14 @@ namespace Skaia
 
     bool State::draw() const
     {
-        if (since_pawn_or_capture ==50) return true;
-        if (history.size() == 7)
+        if (since_pawn_or_capture == 50) return true;
+        if (history.size() == 8)
         {
             return
                 history[0] == history[4] &&
                 history[1] == history[5] &&
                 history[2] == history[6] &&
-                history[3] == to_simple();
+                history[3] == history[7];
         }
         return false;
     }
@@ -219,14 +219,13 @@ namespace Skaia
         LOG("apply_action");
         // Create a BackAction so that we can return to this state
         Piece null_piece;
-        SimpleSmallState old_state(history.size() == 7 ? history[0] :
-                SimpleSmallState{{{0, 0, 0, 0}}});
+        uint64_t old_action(history.size() == 8 ? history[0] : 0);
         int double_moved_id = double_moved_pawn == nullptr ? -1 : double_moved_pawn->id;
         BackAction back_action{action.promotion, Piece(*(at(action.from).piece)),
-            null_piece, old_state, double_moved_id, since_pawn_or_capture};
+            null_piece, old_action, double_moved_id, since_pawn_or_capture};
 
-        // Record this state so we can check for draws later
-        history.push_back(to_simple());
+        // Record this action so we can check for draws later
+        history.push_back(at(action.from).piece->type << 8 | action.to.rank << 4 | action.to.file);
         since_pawn_or_capture += 1;
 
         // Remove moves to en-passant the previously double-moved pawn
@@ -468,11 +467,11 @@ namespace Skaia
 
         // Restore state variables
         since_pawn_or_capture = action.since_pawn_or_capture;
-        SimpleSmallState null_state{{0, 0, 0, 0}};
+        uint64_t null_history = 0;
         // Add old state
-        if (action.old_state != null_state)
+        if (action.old_action != null_history)
         {
-            history.push_front(action.old_state);
+            history.push_front(action.old_action);
         }
         else // Remove a state, we are near the beginning
         {
@@ -548,15 +547,20 @@ namespace Skaia
             {Bishop, 3},
             {Knight, 3},
             {Rook, 5},
-            {Queen, 9},
-            {King, 0}
+            {Queen, 9}
         }};
-        int total_value = 0;
+        auto &p = pieces_by_color_and_type[color];
+        int h = 0;
         for (auto& type : types)
         {
-            total_value += type.second * pieces_by_color_and_type[color][type.first].size();
+            h += type.second * p[type.first].size();
         }
-        return total_value;
+        // Extra bonuses for having pairs
+        if (p[Rook].size() >= 2) h += 1;
+        if (p[Bishop].size() >= 2) h += 1;
+        // Extra bonus for having multiple long-range pieces
+        if (p[Rook].size() + p[Bishop].size() + p[Queen].size() >= 3) h += 1;
+        return h;
     }
 
     int State::count_net_checks(Color color) const
@@ -644,7 +648,7 @@ namespace Skaia
     int State::count_piece_moves(Color color) const
     {
         int h = 0;
-        int i = (color ? 16 : 0);
+        int i = (color ? 16 : 0); // First 16 pieces are white's next 16 are black's
         for (auto c = 0u; c < 16; ++c)
         {
             if (pieces[i].alive)

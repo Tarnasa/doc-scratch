@@ -59,8 +59,8 @@ void SkaiaTest()
     std::cout << "Testing normal move back action ";
     State a, b;
     Piece empty_piece;
-    SimpleSmallState null_state{{0, 0, 0, 0}};
-    BackAction back_action{Empty, a.pieces[16], empty_piece, null_state, -1, a.since_pawn_or_capture};
+    uint64_t null_history = 0;
+    BackAction back_action{Empty, a.pieces[16], empty_piece, null_history, -1, a.since_pawn_or_capture};
     b.apply_action(Action(a.pieces[16].pos, a.pieces[16].pos + Position(-2, 0), Empty));
     b.apply_back_action(back_action);
     std::cout << (a == b) << std::endl;

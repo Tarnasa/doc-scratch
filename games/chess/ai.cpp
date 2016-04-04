@@ -12,7 +12,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Chief Deputy Pyralspite"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Petty Officer Applescab"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -21,7 +21,25 @@ std::string Chess::AI::getName()
 void Chess::AI::start()
 {
     // This is a good place to initialize any variables you add to your AI, or start tracking game objects.
+    // Run the tests!
     SkaiaTest();
+    // Initialize the average_times to somewhat meaningfull values
+    // NOTE: These are intentionaly underestimates, so that, if given the chance, the AI may actually increase it's depth.
+    auto make_time = [&](double time) {
+        return std::chrono::nanoseconds(static_cast<uint64_t>(time * 1e9));
+    };
+    average_time[0] = make_time(0);
+    average_time[1] = make_time(0.01);
+    average_time[2] = make_time(0.5);
+    average_time[3] = make_time(5.0);
+    average_time[4] = make_time(10.0);
+    average_time[5] = make_time(20.0);
+    average_time[6] = make_time(40.0);
+    average_time[7] = make_time(80.0);
+    average_time[8] = make_time(160.0);
+    average_time[9] = make_time(320.0);
+    average_time[10] = make_time(1024.0);
+    std::cout << "avg: " << average_time[1].count() << " and " << average_time[2].count() << std::endl;
 }
 
 /// <summary>
@@ -165,8 +183,15 @@ bool Chess::AI::runTurn()
     state.print_debug_info(std::cout);
     std::cout << state << std::endl;
 
+    // Try to keep our timeRemaining higher than our opponent
+    std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->otherPlayer->timeRemaining << std::endl;
+    auto time_to_spend = std::chrono::nanoseconds(static_cast<int64_t>(
+                this->player->timeRemaining - this->player->otherPlayer->timeRemaining));
+    std::cout << "Time to spend: " << time_to_spend.count() << std::endl;
+
     // IDDL-MM
-    int depth = 1;
+    int depth = 2;
+    if (state.turn == 0) depth = 4;
     // Record time
     auto genesis = std::chrono::steady_clock::now();
     while (true)
@@ -177,7 +202,12 @@ bool Chess::AI::runTurn()
 
         // Check time
         std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
-        // Go deeper if we haven't reached 2 seconds
+        // Record time
+        auto ns_time = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+        average_time[depth] = std::chrono::duration_cast<std::chrono::nanoseconds>(average_time[depth] * 0.8 + ns_time * 0.2);
+        // Go deeper if doing so we will still have more time remaining than our opponent
+        //if (ns_time < time_to_spend && average_time[depth + 1] < time_to_spend &&
+                //duration.count() < 4.0)
         if (duration.count() < 2.0)
         {
             depth += 1;

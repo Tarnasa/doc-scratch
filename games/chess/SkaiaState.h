@@ -47,8 +47,7 @@ namespace Skaia
             std::array<Square, 8 * 8> squares;
             std::array<std::array<std::vector<Piece*>, NumberOfTypes>, 2> pieces_by_color_and_type;
             Piece* double_moved_pawn; // Points to the one pawn that is capturable by en-passant, or nullptr
-            // TODO: Use buffer of actions instead of states
-            boost::circular_buffer<SimpleSmallState> history; // For detecting draws by repeat
+            boost::circular_buffer<uint64_t> history; // For detecting draws by repeat
             int since_pawn_or_capture; // For detecting draws by no pawn move or piece captured
             //Zobrist zobrist; // Hash board state
 

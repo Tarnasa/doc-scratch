@@ -13,6 +13,8 @@
 #include "../../joueur/baseAI.h"
 
 #include <chrono>
+#include <map>
+#include <cstdint>
 
 #include "SkaiaState.h"
 
@@ -25,6 +27,7 @@ class Chess::AI : public Joueur::BaseAI
         /// Custom stuffs
         Skaia::State state; // Store the board state between turns
         std::chrono::time_point<std::chrono::steady_clock> turn_end; // Used to measure how long the opponent is taking
+        std::map<int, std::chrono::nanoseconds> average_time; // Holds the average time (in ns) it has taken to traverse down to the given depth
 
 
 
