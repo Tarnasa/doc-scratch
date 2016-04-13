@@ -5,6 +5,9 @@
 #include "SkaiaTest.h"
 #include "SkaiaMM.h"
 
+#include <atomic>
+#include <thread>
+
 
 /// <summary>
 /// This returns your AI's name to the game server. Just replace the string.
@@ -140,6 +143,9 @@ bool Chess::AI::runTurn()
     }
     */
 
+    // Record time
+    auto genesis = std::chrono::steady_clock::now();
+
     // Print how much time since the end of our last turn
     if (state.turn > 1)
     {
@@ -185,56 +191,83 @@ bool Chess::AI::runTurn()
 
     // Try to keep our timeRemaining higher than our opponent
     std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->otherPlayer->timeRemaining << std::endl;
-    auto time_to_spend = std::chrono::nanoseconds(static_cast<int64_t>(
-                this->player->timeRemaining - this->player->otherPlayer->timeRemaining));
-    std::cout << "Time to spend: " << time_to_spend.count() << std::endl;
+    auto player_time_difference = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->otherPlayer->timeRemaining)));
+    std::cout << "Time to spend: " << player_time_difference.count() << std::endl;
 
-    // IDDL-MM
+    // Minimax call for thread
+    auto minimax = [&](int &depth, std::atomic<bool>& cont, Skaia::MMReturn& ret, std::atomic_flag &return_ready) -> void {
+        while (cont)
+        {
+            auto action = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
+            while (return_ready.test_and_set()) {if (!cont) break;}
+            ret = action;
+            return_ready.clear();
+            depth += 1;
+        }
+    };
+
+    // Figure initial depth
     int depth = 2;
     if (state.turn == 0) depth = 4;
-    // Record time
-    auto genesis = std::chrono::steady_clock::now();
-    while (true)
-    {
-        // Minimax
-        auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+
+    // Get a basic action in case thread messes up somehow
+    auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+            std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
+    std::atomic<bool> cont(true);
+    std::atomic_flag action_ready;
+
+    depth += 1;
+
+    // Call minimax in a separate thread
+    std::thread minimax_thread([&] {
+        while (cont)
+        {
+            auto action = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
                 std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
-
-        // Check time
-        std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
-        // Record time
-        auto ns_time = std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
-        average_time[depth] = std::chrono::duration_cast<std::chrono::nanoseconds>(average_time[depth] * 0.8 + ns_time * 0.2);
-        // Go deeper if doing so we will still have more time remaining than our opponent
-        //if (ns_time < time_to_spend && average_time[depth + 1] < time_to_spend &&
-                //duration.count() < 4.0)
-        if (duration.count() < 2.0)
-        {
+            while (action_ready.test_and_set()) {if (!cont) break;}
+            ret = action;
+            action_ready.clear();
             depth += 1;
-            continue;
         }
-        std::cout << "Depth: " << depth << std::endl;
-        std::cout << "Took " << duration.count() << " seconds for " << ret.states_evaluated << " states" << std::endl;
-        std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
-        
-        // Make move through framework
-        auto move = ret.action;
-        auto from_rank = Skaia::rank_from_skaia(move.from.rank);
-        auto from_file = Skaia::file_from_skaia(move.from.file);
-        auto to_rank = Skaia::rank_from_skaia(move.to.rank);
-        auto to_file = Skaia::file_from_skaia(move.to.file);
-        for (auto&& piece : this->player->pieces)
-        {
-            if (piece->rank == from_rank && piece->file == from_file)
-            {
-                piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
-            }
-        }
-        // Apply move to state
-        state.apply_action(move);
+    });
 
-        break;
+    // Wait slightly less than our opponent
+    auto time_to_spend = player_time_difference - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - genesis);
+    std::cout << "time_to_spend: " << time_to_spend.count() << std::endl;
+    if (time_to_spend.count() > 0)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(time_to_spend));
     }
+    cont = false;
+    while (action_ready.test_and_set());
+
+    // Check time
+    std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
+
+    std::cout << "Depth: " << depth << std::endl;
+    std::cout << "Took " << duration.count() << " seconds for " << ret.states_evaluated << " states" << std::endl;
+    std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
+        
+    // Make move through framework
+    auto move = ret.action;
+    auto from_rank = Skaia::rank_from_skaia(move.from.rank);
+    auto from_file = Skaia::file_from_skaia(move.from.file);
+    auto to_rank = Skaia::rank_from_skaia(move.to.rank);
+    auto to_file = Skaia::file_from_skaia(move.to.file);
+    for (auto&& piece : this->player->pieces)
+    {
+        if (piece->rank == from_rank && piece->file == from_file)
+        {
+            piece->move(to_file, to_rank, Skaia::type_from_skaia(move.promotion));
+        }
+    }
+    // Apply move to state
+    state.apply_action(move);
+
+    action_ready.clear();
+    minimax_thread.join();
 
     turn_end = std::chrono::steady_clock::now();
 
