@@ -65,6 +65,9 @@ namespace Skaia
             // Detect draw
             bool draw() const;
 
+            // Detect quiescent state
+            bool quiescent() const;
+
             // Heuristic functions
             int material(Color color) const;
             int count_net_checks(Color color) const;

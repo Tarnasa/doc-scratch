@@ -182,7 +182,7 @@ bool Chess::AI::runTurn()
     if (!found_pondering_result)
     {
         // Generate a simple action in case the idmm_thread somehow fails
-        ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+        ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth, 3,
                 std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max(), history_table);
         if (state.turn > 1)
         {
@@ -206,6 +206,7 @@ bool Chess::AI::runTurn()
             auto action = Skaia::interruptable_minimax(state_copy,
                     (state_copy.turn % 2 ? Skaia::Black : Skaia::White),
                     depth,
+                    3,
                     std::numeric_limits<int>::lowest(),
                     std::numeric_limits<int>::max(),
                     history_table,
@@ -295,6 +296,7 @@ bool Chess::AI::runTurn()
             auto new_pondering_move = Skaia::pondering_minimax(state_copy,
                     ((state_copy.turn + 1) % 2 ? Skaia::Black : Skaia::White),
                     pondering_depth,
+                    3,
                     std::numeric_limits<int>::lowest(),
                     std::numeric_limits<int>::max(),
                     history_table,

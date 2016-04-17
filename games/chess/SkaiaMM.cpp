@@ -6,8 +6,8 @@
 
 namespace Skaia
 {
-    MMReturn minimax(const State& cstate, Color me, int depth_remaining, int lower, int upper,
-            HistoryTable &ht)
+    MMReturn minimax(const State& cstate, Color me, int depth_remaining, int quiescent_depth,
+            int lower, int upper, HistoryTable &ht)
     {
         LOG("minimax(" << depth_remaining << ", " << lower << ", " << upper << ")");
         // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
@@ -18,8 +18,9 @@ namespace Skaia
         auto moves = state.generate_actions();
         bool stalemate = moves.empty();
         bool draw = state.draw();
+        bool quiescent = state.quiescent();
         // Base case, terminal node
-        if (stalemate || draw || depth_remaining == 0)
+        if (stalemate || draw || (depth_remaining == 0 && (quiescent || quiescent_depth == 0)))
         {
             LOG("minimax: base case");
             return MMReturn{heuristic(state, me, stalemate, draw), empty_action, 1};
@@ -28,7 +29,7 @@ namespace Skaia
         {
             // Sort moves by history table scores
             // OPTIMIZE: Get scores for all actions at once
-            std::sort(moves.begin(), moves.end(), [&](Action &first, Action &second) {
+            std::sort(moves.begin(), moves.end(), [&](const Action &first, const Action &second) {
                     return ht.get_score(first) > ht.get_score(second);
             });
             
@@ -42,7 +43,8 @@ namespace Skaia
                 LOG("minimax: action: " << action);
                 // Apply, recurse, and unapply the action
                 auto back_action = state.apply_action(action);
-                auto ret = minimax(state, me, depth_remaining - 1, lower, upper, ht);
+                auto ret = minimax(state, me, depth_remaining - (depth_remaining != 0),
+                        quiescent_depth - (depth_remaining == 0), lower, upper, ht);
                 state.apply_back_action(back_action);
 
                 best.states_evaluated += ret.states_evaluated;
@@ -99,13 +101,14 @@ namespace Skaia
     }
 
     MMReturn interruptable_minimax(const State& cstate, Color me, int depth_remaining,
-            int lower, int upper, HistoryTable &ht, std::atomic<bool> &stop)
+            int quiescent_depth, int lower, int upper, HistoryTable &ht,
+            std::atomic<bool> &stop)
     {
         LOG("interruptable_minimax(" << depth_remaining << ", " << lower << ", " << upper << ")");
         if (depth_remaining < 3)
         {
             // Revert back to uninterruptable if depth is small enough
-            return minimax(cstate, me, depth_remaining, lower, upper, ht);
+            return minimax(cstate, me, depth_remaining, quiescent_depth, lower, upper, ht);
         }
         // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
         State& state = const_cast<State&>(cstate);
@@ -115,8 +118,9 @@ namespace Skaia
         auto moves = state.generate_actions();
         bool stalemate = moves.empty();
         bool draw = state.draw();
+        bool quiescent = state.quiescent();
         // Base case, terminal node
-        if (stalemate || draw || depth_remaining == 0)
+        if (stalemate || draw || (depth_remaining == 0 && (quiescent || quiescent_depth == 0)))
         {
             return MMReturn{heuristic(state, me, stalemate, draw), empty_action, 1};
         }
@@ -124,7 +128,7 @@ namespace Skaia
         {
             // Sort moves by history table scores
             // OPTIMIZE: Get scores for all actions at once
-            std::sort(moves.begin(), moves.end(), [&](Action &first, Action &second) {
+            std::sort(moves.begin(), moves.end(), [&](const Action &first, const Action &second) {
                     return ht.get_score(first) > ht.get_score(second);
             });
 
@@ -137,7 +141,8 @@ namespace Skaia
             {
                 // Apply, recurse, and unapply the action
                 auto back_action = state.apply_action(action);
-                auto ret = interruptable_minimax(state, me, depth_remaining - 1, lower, upper, ht, stop);
+                auto ret = interruptable_minimax(state, me, depth_remaining - (depth_remaining != 0),
+                        quiescent_depth - (depth_remaining == 0), lower, upper, ht, stop);
                 state.apply_back_action(back_action);
 
                 best.states_evaluated += ret.states_evaluated;
@@ -202,8 +207,8 @@ namespace Skaia
     }
 
     std::vector<std::pair<Action, MMReturn>> pondering_minimax(const State& cstate,
-            Color me, int depth_remaining, int lower, int upper, HistoryTable &ht,
-            std::atomic<bool> &stop)
+            Color me, int depth_remaining, int quiescent_depth, int lower, int upper,
+            HistoryTable &ht, std::atomic<bool> &stop)
     {
         LOG("pondering_minimax");
         // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
@@ -219,7 +224,7 @@ namespace Skaia
             LOG("pondering_minimax: " << action);
             auto back_action = state.apply_action(action);
             bests.emplace_back(action, interruptable_minimax(state, me, depth_remaining - 1,
-                        lower, upper, ht, stop));
+                        quiescent_depth, lower, upper, ht, stop));
             std::cout << bests.back().second.heuristic << " "
                 << bests.back().second.action << std::endl; // TODO: Remove
             state.apply_back_action(back_action);

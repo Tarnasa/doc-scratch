@@ -80,6 +80,12 @@ namespace Skaia
     }
 
 
+    bool State::quiescent() const
+    {
+        return !is_in_check(Black) && !is_in_check(White);
+    }
+
+
     void State::place_piece(Piece* piece, const Position& pos)
     {
         LOG("place_piece");
