@@ -15,8 +15,12 @@
 #include <chrono>
 #include <map>
 #include <cstdint>
+#include <atomic>
+#include <thread>
+#include <unordered_map>
 
 #include "SkaiaState.h"
+#include "SkaiaMM.h"
 
 /// <summary>
 /// This the header file for where you build your AI for the Chess game.
@@ -29,6 +33,17 @@ class Chess::AI : public Joueur::BaseAI
         std::chrono::time_point<std::chrono::steady_clock> turn_end; // Used to measure how long the opponent is taking
         std::map<int, std::chrono::nanoseconds> average_time; // Holds the average time (in ns) it has taken to traverse down to the given depth
 
+        std::thread idmm_thread;
+        std::atomic<bool> idmm_stop;
+        std::atomic_flag idmm_busy; // Set when a resource is busy
+
+        std::thread pondering_thread;
+        std::atomic<bool> pondering_stop;
+        std::atomic_flag pondering_busy;
+        std::vector<std::pair<Skaia::Action, Skaia::MMReturn>> pondering_move;
+        int pondering_depth;
+
+        std::unordered_map<Skaia::Action, std::pair<int, int>> history_table;
 
 
         /// <summary>

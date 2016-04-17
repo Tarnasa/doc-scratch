@@ -36,3 +36,18 @@ namespace Skaia
 
 std::ostream& operator<<(std::ostream& out, const Skaia::Action& action);
 
+// From: http://en.cppreference.com/w/cpp/utility/hash
+namespace std
+{
+    template<> struct hash<Skaia::Action> {
+        size_t operator() (const Skaia::Action &a) const
+        {
+            return std::hash<int>()(a.from.rank) ^
+                (std::hash<int>()(a.from.file) << 1) ^
+                (std::hash<int>()(a.to.rank) << 2) ^
+                (std::hash<int>()(a.to.file) << 3) ^
+                (std::hash<int>()(static_cast<int>(a.promotion)) << 4);
+        }
+    };
+}
+

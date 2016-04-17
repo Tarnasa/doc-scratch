@@ -139,11 +139,11 @@ namespace Skaia
     {
         if (to.rank == (piece->color ? 7 : 0))
         {
-            // We aint no foo'
-            //actions.emplace_back(piece->pos, to, Bishop);
-            //actions.emplace_back(piece->pos, to, Knight);
-            //actions.emplace_back(piece->pos, to, Rook);
             actions.emplace_back(piece->pos, to, Queen);
+            // We aint no foo'
+            actions.emplace_back(piece->pos, to, Bishop);
+            actions.emplace_back(piece->pos, to, Knight);
+            actions.emplace_back(piece->pos, to, Rook);
         }
         else
         {

@@ -3,7 +3,6 @@
 #include "ai.h"
 
 #include "SkaiaTest.h"
-#include "SkaiaMM.h"
 
 #include <atomic>
 #include <thread>
@@ -15,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Petty Officer Applescab"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Hearts Boxcars"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -61,6 +60,18 @@ void Chess::AI::gameUpdated()
 void Chess::AI::ended(bool won, std::string reason)
 {
     // You can do any cleanup of you AI here, or do custom logging. After this function returns the application will close.
+    std::cout << "Waiting for threads to finish" << std::endl;
+    if (!idmm_stop)
+    {
+        idmm_stop = true;
+        idmm_thread.join();
+    }
+    if (!pondering_stop)
+    {
+        pondering_stop = true;
+        pondering_thread.join();
+    }
+    std::cout << "Threads finished" << std::endl;
 }
 
 
@@ -71,78 +82,7 @@ void Chess::AI::ended(bool won, std::string reason)
 bool Chess::AI::runTurn()
 {
     // Here is where you'll want to code your AI.
-
-    // We've provided sample code that:
-    //    1) prints the board to the console
-    //    2) prints the opponent's last move to the console
-    //    3) prints how much time remaining this AI has to calculate moves
-    //    4) makes a random (and probably invalid) move.
-
-    /*
-    // 1) print the board to the console
-    for (int rank = 9; rank >= -1; rank--)
-    {
-        std::string str = "";
-        if (rank == 9 || rank == 0) // then the top or bottom of the board
-        {
-            str = "   +------------------------+";
-        }
-        else if (rank == -1) // then show the files
-        {
-            str = "     a  b  c  d  e  f  g  h";
-        }
-        else // board
-        {
-            str += " ";
-            str += std::to_string(rank);
-            str += " |";
-            // fill in all the rank with pieces at the current file
-            for (int file = 0; file < 8; file++)
-            {
-                std::string file_string(1, (char)(((int)"a"[0]) + file)); // start at a, with with rank offset increasing the char;
-                Chess::Piece* currentPiece = nullptr;
-                for (auto piece : this->game->pieces)
-                {
-                    if (piece->rank == rank && piece->file == file_string) // then we found the piece at (rank, file)
-                    {
-                        currentPiece = piece;
-                        break;
-                    }
-                }
-
-                char code = '.'; // default "no piece";
-                if (currentPiece != nullptr)
-                {
-                    code = currentPiece->type[0];
-
-                    if (currentPiece->type == "Knight") // 'K' is for "King", we use 'N' for "Knights"
-                    {
-                        code = 'N';
-                    }
-
-                    if (currentPiece->owner->id == "1") // the second player (black) is lower case. Otherwise it's upppercase already
-                    {
-                        code = tolower(code);
-                    }
-                }
-
-                str += " ";
-                str += code;
-                str += " ";
-            }
-
-            str += "|";
-        }
-
-        std::cout << str << std::endl;
-    }
-
-    // 2) print the opponent's last move to the console
-    if (this->game->moves.size() > 0) {
-        std::cout << "Opponent's Last Move: '" << this->game->moves[this->game->moves.size() - 1]->san << "'" << std::endl;
-    }
-    */
-
+    std::cout << "begin" << std::endl; // TODO: Remove
     // Record time
     auto genesis = std::chrono::steady_clock::now();
 
@@ -153,10 +93,18 @@ bool Chess::AI::runTurn()
         std::cout << "Slept for " << slumber.count() << " seconds." << std::endl;
     }
 
-    // Print how much time remaining this AI has to calculate moves
-    std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
+    if (this->game->currentTurn > 1)
+    {
+        // Wait for the pondering thread to finish
+        std::cout << "joining pondering thread" << std::endl; // TODO: Remove
+        pondering_stop = true;
+        pondering_thread.join();
+        std::cout << "joined pondering thread" << std::endl; // TODO: Remove
+    }
 
-    std::cout << "Turn number: " << this->game->currentTurn << std::endl;
+    // Keep track of the previous action
+    Skaia::Action previous_action(Skaia::Position(-1, -1), Skaia::Position(-1, -1), Skaia::Pawn);
+
     // Apply previous move to state
     if (this->game->currentTurn > 0)
     {
@@ -182,56 +130,96 @@ bool Chess::AI::runTurn()
             promotion = Skaia::King;
         }
 
-        state.apply_action(Skaia::Action(from, to, promotion));
+        previous_action = Skaia::Action(from, to, promotion);
+        state.apply_action(previous_action);
     }
     state.turn = this->game->currentTurn;
 
+    // Print the current state
     state.print_debug_info(std::cout);
     std::cout << state << std::endl;
 
-    // Try to keep our timeRemaining higher than our opponent
+    // Print how much time remaining this AI has to calculate moves
+    std::cout << "Turn number: " << this->game->currentTurn << std::endl;
+    std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
+
+    // Find the difference in remaining time between players
     std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->otherPlayer->timeRemaining << std::endl;
     auto player_time_difference = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->otherPlayer->timeRemaining)));
     std::cout << "Time to spend: " << player_time_difference.count() << std::endl;
 
-    // Minimax call for thread
-    auto minimax = [&](int &depth, std::atomic<bool>& cont, Skaia::MMReturn& ret, std::atomic_flag &return_ready) -> void {
-        while (cont)
-        {
-            auto action = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
-                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
-            while (return_ready.test_and_set()) {if (!cont) break;}
-            ret = action;
-            return_ready.clear();
-            depth += 1;
-        }
-    };
-
-    // Figure initial depth
+    // Determine the depth we need to start search at
     int depth = 2;
-    if (state.turn == 0) depth = 4;
+    if (state.turn <= 1) depth = 4;
 
-    // Get a basic action in case thread messes up somehow
-    auto ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
-            std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
-    std::atomic<bool> cont(true);
-    std::atomic_flag action_ready;
+    // Try to get result of pondering thread
+    Skaia::MMReturn ret{-1, previous_action, -1};
+    bool found_pondering_result = false;
+    if (state.turn > 1)
+    {
+        // Print out how far the pondering thread searched
+        std::cout << "Pondering thread searched to depth of: " << pondering_depth << std::endl;
+        // Use the result of the pondering thread
+        for (auto &pair : pondering_move)
+        {
+            if (pair.first == previous_action)
+            {
+                ret = pair.second;
+                found_pondering_result = true;
+                depth = pondering_depth;
+                break;
+            }
+        }
+    }
+    if (!found_pondering_result)
+    {
+        // Generate a simple action in case the idmm_thread somehow fails
+        ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
+                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
+        if (state.turn > 1)
+        {
+            std::cerr << "Failed to find result from pondering thread!" << std::endl;
+        }
+    }
 
     depth += 1;
 
+    std::cout << "before thread" << std::endl;
     // Call minimax in a separate thread
-    std::thread minimax_thread([&] {
-        while (cont)
+    std::cout << "1" << std::endl;
+    idmm_stop = false;
+    std::cout << "2" << std::endl;
+    idmm_busy.clear();
+    std::cout << "3" << std::endl;
+    idmm_thread = std::thread([&] {
+        Skaia::State state_copy = state;
+        while (!idmm_stop)
         {
-            auto action = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
-                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
-            while (action_ready.test_and_set()) {if (!cont) break;}
+            std::cout << "4" << std::endl;
+            auto action = Skaia::interruptable_minimax(state_copy,
+                    (state_copy.turn % 2 ? Skaia::Black : Skaia::White),
+                    depth,
+                    std::numeric_limits<int>::lowest(),
+                    std::numeric_limits<int>::max(),
+                    idmm_stop);
+            std::cout << "5" << std::endl;
+            while (idmm_busy.test_and_set() && !idmm_stop);
+            std::cout << "6" << std::endl;
+            if (idmm_stop)
+            {
+                idmm_busy.clear();
+                break;
+            }
+            std::cout << "7" << std::endl;
             ret = action;
-            action_ready.clear();
+            std::cout << "8" << std::endl;
+            idmm_busy.clear();
+            std::cout << "9" << std::endl;
             depth += 1;
         }
     });
+    std::cout << "after thread" << std::endl;
 
     // Wait slightly less than our opponent
     auto time_to_spend = player_time_difference - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - genesis);
@@ -240,8 +228,8 @@ bool Chess::AI::runTurn()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(time_to_spend));
     }
-    cont = false;
-    while (action_ready.test_and_set());
+    idmm_stop = true;
+    while (idmm_busy.test_and_set());
 
     // Check time
     std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
@@ -266,10 +254,44 @@ bool Chess::AI::runTurn()
     // Apply move to state
     state.apply_action(move);
 
-    action_ready.clear();
-    minimax_thread.join();
+    // Reset resource so that it can be accessed later
+    idmm_busy.clear();
 
     turn_end = std::chrono::steady_clock::now();
+    
+    // Start pondering thread
+    pondering_stop = false;
+    pondering_thread = std::thread([&] {
+        Skaia::State state_copy = state;
+        pondering_depth = 2;
+        pondering_move.clear();
+        std::cout << "Joining idmm_thread" << std::endl;
+        idmm_thread.join(); // Wait for idmm_thread
+        std::cout << "Joined idmm_thread" << std::endl;
+        while (!pondering_stop)
+        {
+            std::cout << "p1" << std::endl;
+            auto new_pondering_move = Skaia::pondering_minimax(state_copy,
+                    ((state_copy.turn + 1) % 2 ? Skaia::Black : Skaia::White),
+                    pondering_depth,
+                    std::numeric_limits<int>::lowest(),
+                    std::numeric_limits<int>::max(),
+                    pondering_stop);
+            std::cout << "p2" << std::endl;
+            while (pondering_busy.test_and_set() && !pondering_stop);
+            std::cout << "p3" << std::endl;
+            if (pondering_stop)
+            {
+                pondering_busy.clear();
+                break;
+            }
+            std::cout << "p4" << std::endl;
+            pondering_move = new_pondering_move;
+            pondering_depth += 1;
+            pondering_busy.clear();
+            std::cout << "p5" << std::endl;
+        }
+    });
 
     return true; // to signify we are done with our turn.
 }

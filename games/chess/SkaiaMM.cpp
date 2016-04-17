@@ -16,77 +16,194 @@ namespace Skaia
         auto moves = state.generate_actions();
         bool stalemate = moves.empty();
         bool draw = state.draw();
-        if (draw) { LOG("Draw found"); }
         // Base case, terminal node
         if (stalemate || draw || depth_remaining == 0)
         {
             LOG("minimax: base case");
             return MMReturn{heuristic(state, me, stalemate, draw), empty_action, 1};
         }
-        else if ((state.turn % 2 ? Black : White) == me)
+        else
         {
-            // Maximizing
-            MMReturn best = MMReturn{std::numeric_limits<int>::lowest(), empty_action};
+            bool maximizing = (state.turn % 2 ? Black : White) == me;
+            // Initialize our "best" action with the worst possible action
+            auto starting_heuristic = maximizing ? std::numeric_limits<int>::lowest() :
+                std::numeric_limits<int>::max();
+            MMReturn best = MMReturn{starting_heuristic, empty_action, 0};
             for (auto& action : moves)
             {
-                LOG("minimax: maximizing: " << action);
+                LOG("minimax: action: " << action);
+                // Apply, recurse, and unapply the action
                 auto back_action = state.apply_action(action);
                 auto ret = minimax(state, me, depth_remaining - 1, lower, upper);
                 state.apply_back_action(back_action);
 
                 best.states_evaluated += ret.states_evaluated;
-                if (ret.heuristic > upper)
+                if (maximizing)
                 {
-                    LOG("minimax: short circuit");
-                    best = ret;
-                    best.action = action;
-                    break;
-                }
-                if (ret.heuristic > best.heuristic)
-                {
-                    LOG("minimax: new best");
-                    best = ret;
-                    best.action = action;
-                    if (ret.heuristic > lower)
+                    // Prune
+                    if (ret.heuristic > upper)
                     {
-                        lower = ret.heuristic;
+                        LOG("minimax: short circuit");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        break;
+                    }
+                    // Set new best
+                    if (ret.heuristic > best.heuristic)
+                    {
+                        LOG("minimax: new best");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        if (ret.heuristic > lower)
+                        {
+                            lower = ret.heuristic;
+                        }
+                    }
+                }
+                else
+                {
+                    // Prune
+                    if (ret.heuristic < lower)
+                    {
+                        LOG("minimax: short circuit");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        break;
+                    }
+                    // Set new best
+                    if (ret.heuristic < best.heuristic)
+                    {
+                        LOG("minimax: new best");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        if (ret.heuristic < upper)
+                        {
+                            upper = ret.heuristic;
+                        }
                     }
                 }
             }
             return best;
         }
+    }
+
+    MMReturn interruptable_minimax(const State& cstate, Color me, int depth_remaining,
+            int lower, int upper, std::atomic<bool> &stop)
+    {
+        LOG("interruptable_minimax");
+        if (depth_remaining < 3)
+        {
+            // Revert back to uninterruptable if depth is small enough
+            return minimax(cstate, me, depth_remaining, lower, upper);
+        }
+        // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
+        State& state = const_cast<State&>(cstate);
+        
+        static const Action empty_action(Position(-1, -1), Position(-1, -1), Empty);
+
+        auto moves = state.generate_actions();
+        bool stalemate = moves.empty();
+        bool draw = state.draw();
+        // Base case, terminal node
+        if (stalemate || draw || depth_remaining == 0)
+        {
+            return MMReturn{heuristic(state, me, stalemate, draw), empty_action, 1};
+        }
         else
         {
-            // Minimizing
-            MMReturn worst = MMReturn{std::numeric_limits<int>::max(), empty_action};
+            bool maximizing = (state.turn % 2 ? Black : White) == me;
+            // Initialize our "best" action with the worst possible action
+            auto starting_heuristic = maximizing ? std::numeric_limits<int>::lowest() :
+                std::numeric_limits<int>::max();
+            MMReturn best = MMReturn{starting_heuristic, empty_action, 0};
             for (auto& action : moves)
             {
-                LOG("minimax: minimizing: " << action);
+                // Apply, recurse, and unapply the action
                 auto back_action = state.apply_action(action);
-                auto ret = minimax(state, me, depth_remaining - 1, lower, upper);
+                auto ret = interruptable_minimax(state, me, depth_remaining - 1, lower, upper, stop);
                 state.apply_back_action(back_action);
 
-                worst.states_evaluated += ret.states_evaluated;
-                if (ret.heuristic < lower)
+                best.states_evaluated += ret.states_evaluated;
+                if (maximizing)
                 {
-                    LOG("minimax: short circuit");
-                    worst = ret;
-                    worst.action = action;
-                    break;
-                }
-                if (ret.heuristic < worst.heuristic)
-                {
-                    LOG("minimax: new worst");
-                    worst = ret;
-                    worst.action = action;
-                    if (ret.heuristic < upper)
+                    // Prune
+                    if (ret.heuristic > upper)
                     {
-                        upper = ret.heuristic;
+                        LOG("minimax: short circuit");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        break;
+                    }
+                    // Set new best
+                    if (ret.heuristic > best.heuristic)
+                    {
+                        LOG("minimax: new best");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        if (ret.heuristic > lower)
+                        {
+                            lower = ret.heuristic;
+                        }
                     }
                 }
+                else
+                {
+                    // Prune
+                    if (ret.heuristic < lower)
+                    {
+                        LOG("minimax: short circuit");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        break;
+                    }
+                    // Set new best
+                    if (ret.heuristic < best.heuristic)
+                    {
+                        LOG("minimax: new best");
+                        best.heuristic = ret.heuristic;
+                        best.action = action;
+                        if (ret.heuristic < upper)
+                        {
+                            upper = ret.heuristic;
+                        }
+                    }
+                }
+                // Check if another thread wants us to stop
+                //  We do this AFTER we set a new best so that we should always
+                //  have a valid action ready to return.
+                if (stop)
+                {
+                    LOG("interruptable_minimax: stop");
+                    break;
+                }
             }
-            return worst;
+            return best;
         }
+    }
+
+    std::vector<std::pair<Action, MMReturn>> pondering_minimax(const State& cstate,
+            Color me, int depth_remaining, int lower, int upper, std::atomic<bool> &stop)
+    {
+        LOG("pondering_minimax");
+        // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
+        State& state = const_cast<State&>(cstate);
+        
+        static const Action empty_action(Position(-1, -1), Position(-1, -1), Empty);
+
+        auto moves = state.generate_actions();
+
+        std::vector<std::pair<Action, MMReturn>> bests;
+        for (auto& action : moves)
+        {
+            LOG("pondering_minimax: " << action);
+            auto back_action = state.apply_action(action);
+            bests.emplace_back(action, interruptable_minimax(state, me, depth_remaining - 1,
+                        std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max(), stop));
+            std::cout << bests.back().second.heuristic << std::endl; // TODO: Remove
+            state.apply_back_action(back_action);
+            if (stop) break;
+        }
+        return bests;
     }
 
     int heuristic(const State& state, Color me, bool stalemate, bool draw)

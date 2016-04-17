@@ -804,6 +804,7 @@ namespace Skaia
         {
             out << small << ", ";
         }
+        out << "]";
         out << std::endl << "since_pawn_or_capture: " << since_pawn_or_capture << std::endl;
     }
 }
