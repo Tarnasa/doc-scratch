@@ -35,17 +35,17 @@ void HistoryTable::decay(int number_to_check, int threshold)
     {
         // Stop if their aint none left
         if (scores.size() == 0) break;
-        // Choose a random bucket
+        // Choose a random non-empty bucket
         int bucket, bucket_size;
         do
         { 
-            bucket = std::uniform_int_distribution<int>(0, scores.bucket_count())(rand);
+            bucket = std::uniform_int_distribution<int>(0, scores.bucket_count() - 1)(rand);
         }
         while ( (bucket_size = scores.bucket_size(bucket)) == 0 );
 
         // Select a random element from the bucket
         const auto &key_value = std::next(scores.cbegin(bucket),
-                std::uniform_int_distribution<int>(0, bucket_size)(rand));
+                std::uniform_int_distribution<int>(0, bucket_size - 1)(rand));
         if (key_value->second.second < threshold)
         {
             // Remove the element

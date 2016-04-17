@@ -19,15 +19,16 @@ namespace Skaia
     // looks depth_remaining ply deep from the given state and returns
     //  the best heuristic and move that leads there.
     // Min/Max player is a function of .turn variable in state.
-    MMReturn minimax(const State& cstate, Color me, int depth_remaining, int lower, int upper);
+    MMReturn minimax(const State& cstate, Color me, int depth_remaining, int lower, int upper,
+            HistoryTable &ht);
 
     // Same as minimax, but stops trying new actions when &stop is true
     MMReturn interruptable_minimax(const State& cstate, Color me, int depth_remaining,
-            int lower, int upper, std::atomic<bool> &stop);
+            int lower, int upper, HistoryTable &ht, std::atomic<bool> &stop);
 
     // Like minimax(), but does no pruning on the top level, and returns the best action found for each top-level action
     std::vector<std::pair<Action, MMReturn>> pondering_minimax(const State& cstate, Color me,
-            int depth_remaining, int lower, int upper, std::atomic<bool> &stop);
+            int depth_remaining, int lower, int upper, HistoryTable &ht, std::atomic<bool> &stop);
 
     // Material + net checks
     int heuristic(const State& state, Color me, bool stalemate, bool draw);

@@ -14,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Diamonds Droog"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Spades Slick"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -175,20 +175,6 @@ bool Chess::AI::runTurn()
                 ret = pair.second;
                 found_pondering_result = true;
                 depth = pondering_depth - 1;
-                // TODO: Remove
-                // Make sure that pondering found same result as normal minimax
-                /*
-                auto actual = minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White),
-                        pondering_depth - 2, std::numeric_limits<int>::lowest(),
-                        std::numeric_limits<int>::max());
-                if (actual.action != ret.action || actual.heuristic != ret.heuristic)
-                {
-                    std::cerr << "Pondering result not same as normal minimax!" << std::endl;
-                    std::cerr << "actual: " << actual.action << " " << actual.heuristic << std::endl;
-                    std::cerr << "pondering: " << ret.action << " " << ret.heuristic << std::endl;
-                }
-                */
-                // TODO: Remove
                 break;
             }
         }
@@ -197,7 +183,7 @@ bool Chess::AI::runTurn()
     {
         // Generate a simple action in case the idmm_thread somehow fails
         ret = Skaia::minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White), depth,
-                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max());
+                std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max(), history_table);
         if (state.turn > 1)
         {
             std::cerr << "Failed to find result from pondering thread!" << std::endl;
@@ -222,6 +208,7 @@ bool Chess::AI::runTurn()
                     depth,
                     std::numeric_limits<int>::lowest(),
                     std::numeric_limits<int>::max(),
+                    history_table,
                     idmm_stop);
             std::cout << "5" << std::endl;
             while (idmm_busy.test_and_set() && !idmm_stop);
@@ -266,6 +253,12 @@ bool Chess::AI::runTurn()
     std::cout << "Took " << duration.count() << " seconds for " << ret.states_evaluated << " states" << std::endl;
     std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
         
+    // Clean up the history table (check 10% of entries for expiration)
+    std::cout << "History table size: " << history_table.scores.size() << std::endl;
+    std::cout << "Number of buckets: " << history_table.scores.bucket_count() << std::endl;
+    history_table.decay(history_table.scores.size() / 10, state.turn - 20);
+    std::cout << "New History table size: " << history_table.scores.size() << std::endl;
+
     // Make move through framework
     auto move = ret.action;
     auto from_rank = Skaia::rank_from_skaia(move.from.rank);
@@ -304,6 +297,7 @@ bool Chess::AI::runTurn()
                     pondering_depth,
                     std::numeric_limits<int>::lowest(),
                     std::numeric_limits<int>::max(),
+                    history_table,
                     pondering_stop);
             std::cout << "p2" << std::endl;
             while (pondering_busy.test_and_set() && !pondering_stop);
