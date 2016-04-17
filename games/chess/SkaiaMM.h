@@ -2,6 +2,7 @@
 // Minimax and its many variations
 
 #include "SkaiaState.h"
+#include "HistoryTable.h"
 
 #include <map>
 #include <atomic>

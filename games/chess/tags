@@ -26,11 +26,7 @@ JOUEUR_CHESS_MOVE_H	move.h	5;"	d
 JOUEUR_CHESS_PIECE_H	piece.h	5;"	d
 JOUEUR_CHESS_PLAYER_H	player.h	5;"	d
 JOUEUR_CHESS_REGISTERY_H	registry.h	2;"	d
-LOG	SkaiaState.cpp	11;"	d	file:
-LOG	SkaiaState.cpp	819;"	d	file:
-LOG	SkaiaState.cpp	9;"	d	file:
-LOG	SkaiaState_internal.cpp	13;"	d	file:
-LOG	SkaiaState_internal.cpp	253;"	d	file:
+LOG	Skaia.h	11;"	d
 MMReturn	SkaiaMM.h	/^    struct MMReturn$/;"	s	namespace:Skaia
 Move	move.h	/^        Move() {};$/;"	f	class:Chess::Move
 Move	move.h	/^class Chess::Move : public Chess::GameObject$/;"	c	class:Chess
@@ -75,6 +71,7 @@ at	SkaiaState_internal.cpp	/^    State::Square& State::at(const Position& pos)$/
 at	SkaiaState_internal.cpp	/^    State::Square& State::at(int rank, int file)$/;"	f	class:Skaia::State
 at	SkaiaState_internal.cpp	/^    const State::Square& State::at(const Position& pos) const$/;"	f	class:Skaia::State
 at	SkaiaState_internal.cpp	/^    const State::Square& State::at(int rank, int file) const$/;"	f	class:Skaia::State
+average_time	ai.h	/^        std::map<int, std::chrono::nanoseconds> average_time; \/\/ Holds the average time (in ns) it has taken to traverse down to the given depth$/;"	m	class:Chess::AI
 canKill	SkaiaState_internal.cpp	/^    bool State::canKill(const Piece* piece, const Position& pos) const$/;"	f	class:Skaia::State
 canTake	SkaiaState_internal.cpp	/^    bool State::canTake(const Piece* piece, const Position& pos) const$/;"	f	class:Skaia::State
 captured	move.h	/^        Chess::Piece* captured;$/;"	m	class:Chess::Move
@@ -89,6 +86,7 @@ check_pos	SkaiaState_internal.cpp	/^    void State::check_pos(const Piece* piece
 check_ray	SkaiaState_internal.cpp	/^    void State::check_ray(const Piece* piece, const Position& delta, bool check)$/;"	f	class:Skaia::State
 check_rook	SkaiaState_internal.cpp	/^    void State::check_rook(const Piece* piece, bool check)$/;"	f	class:Skaia::State
 checked_by_color	SkaiaState.h	/^                bool checked_by_color(Color color) const$/;"	f	struct:Skaia::State::Square
+checks	BoardChecks.h	/^        std::array<std::pair<int, int>, 8 * 8> checks; \/\/ For each square, the heurisitc for white and black$/;"	m	class:BoardChecks
 checks	SkaiaState.h	/^                std::bitset<32> checks;$/;"	m	struct:Skaia::State::Square
 chessAI	gameManager.h	/^        Chess::AI* chessAI;$/;"	m	class:Chess::GameManager
 chessGame	gameManager.h	/^        Chess::Game* chessGame;$/;"	m	class:Chess::GameManager
@@ -99,6 +97,7 @@ color_values	Zobrist.h	/^        std::array<uint64_t, 2> color_values; \/\/ [0] 
 count_net_check_values	SkaiaState.cpp	/^    int State::count_net_check_values(Color color) const$/;"	f	class:Skaia::State
 count_net_checks	SkaiaState.cpp	/^    int State::count_net_checks(Color color) const$/;"	f	class:Skaia::State
 count_pawn_advancement	SkaiaState.cpp	/^    int State::count_pawn_advancement(Color color) const$/;"	f	class:Skaia::State
+count_piece_moves	SkaiaState.cpp	/^    int State::count_piece_moves(Color color) const$/;"	f	class:Skaia::State
 createGameObject	gameManager.cpp	/^Joueur::BaseGameObject* Chess::GameManager::createGameObject(const std::string& gameObjectName)$/;"	f	class:Chess::GameManager
 currentPlayer	game.h	/^        Chess::Player* currentPlayer;$/;"	m	class:Chess::Game
 currentTurn	game.h	/^        int currentTurn;$/;"	m	class:Chess::Game
@@ -128,14 +127,20 @@ gameUpdated	ai.cpp	/^void Chess::AI::gameUpdated()$/;"	f	class:Chess::AI
 generate_actions	SkaiaState.cpp	/^    std::vector<Action> State::generate_actions() const$/;"	f	class:Skaia::State
 getName	ai.cpp	/^std::string Chess::AI::getName()$/;"	f	class:Chess::AI
 hasMoved	piece.h	/^        bool hasMoved;$/;"	m	class:Chess::Piece
+hash	SkaiaAction.h	/^    template<> struct hash<Skaia::Action> {$/;"	s	namespace:std
 hash	Zobrist.h	/^        uint64_t hash;$/;"	m	class:Zobrist
 heuristic	SkaiaMM.cpp	/^    int heuristic(const State& state, Color me, bool stalemate, bool draw)$/;"	f	namespace:Skaia
 heuristic	SkaiaMM.h	/^        int heuristic;$/;"	m	struct:Skaia::MMReturn
-history	SkaiaState.h	/^            boost::circular_buffer<SimpleSmallState> history; \/\/ For detecting draws by repeat$/;"	m	class:Skaia::State
+history	SkaiaState.h	/^            boost::circular_buffer<uint64_t> history; \/\/ For detecting draws by repeat$/;"	m	class:Skaia::State
+history_table	ai.h	/^        std::unordered_map<Skaia::Action, std::pair<int, int>> history_table;$/;"	m	class:Chess::AI
 id	SkaiaPiece.h	/^            int id; \/\/ This will be an index into the vector of pieces$/;"	m	class:Skaia::Piece
+idmm_busy	ai.h	/^        std::atomic_flag idmm_busy; \/\/ Set when a resource is busy$/;"	m	class:Chess::AI
+idmm_stop	ai.h	/^        std::atomic<bool> idmm_stop;$/;"	m	class:Chess::AI
+idmm_thread	ai.h	/^        std::thread idmm_thread;$/;"	m	class:Chess::AI
 inCheck	player.h	/^        bool inCheck;$/;"	m	class:Chess::Player
 inside	SkaiaState.h	/^            static bool inside(const Position& pos) { return inside(pos.rank, pos.file); }$/;"	f	class:Skaia::State
 inside	SkaiaState.h	/^            static bool inside(int rank, int file) { return 0 <= rank && rank < 8 && 0 <= file && file < 8; }$/;"	f	class:Skaia::State
+interruptable_minimax	SkaiaMM.cpp	/^    MMReturn interruptable_minimax(const State& cstate, Color me, int depth_remaining,$/;"	f	namespace:Skaia
 is_in_check	SkaiaState.cpp	/^    bool State::is_in_check(Color color) const$/;"	f	class:Skaia::State
 kill_piece	SkaiaState.cpp	/^    void State::kill_piece(Piece* piece)$/;"	f	class:Skaia::State
 line_moves	SkaiaState_internal.cpp	/^    void State::line_moves(const Piece* piece, const Position& delta, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
@@ -151,11 +156,12 @@ moves	SkaiaPiece.h	/^            std::vector<Action> moves; \/\/ A vector of all
 moves	game.h	/^        std::vector<Chess::Move*> moves;$/;"	m	class:Chess::Game
 name	player.h	/^        std::string name;$/;"	m	class:Chess::Player
 names	Skaia.h	/^    static const std::vector<std::string> names = {"Empty", "Pawn", "Bishop", "Knight", "Rook", "Queen", "King"};$/;"	m	namespace:Skaia
-old_state	SkaiaBackAction.h	/^            SimpleSmallState old_state; \/\/ The eighth-oldest state to be re-added to history, or {{0, 0, 0, 0}} if there isn't enough history$/;"	m	class:Skaia::BackAction
-operator !	Skaia.cpp	/^Skaia::Color operator!(const Skaia::Color &color) { return !color ? Skaia::Black : Skaia::White; }$/;"	f
+old_action	SkaiaBackAction.h	/^            uint64_t old_action; \/\/ The eighth-oldest action to be re-added to history, or 0 if there isn't enough history$/;"	m	class:Skaia::BackAction
+operator !	Skaia.cpp	/^Skaia::Color operator!(const Skaia::Color &color) { return color ? Skaia::White : Skaia::Black; }$/;"	f
 operator !=	Skaia.h	/^        bool operator!=(const Position& rhs) const { return rank != rhs.rank || file != rhs.file; }$/;"	f	struct:Skaia::Position
 operator !=	SkaiaAction.h	/^            bool operator!=(const Action& rhs) const$/;"	f	class:Skaia::Action
 operator !=	SkaiaSimpleSmallState.h	/^        bool operator!=(const SimpleSmallState& rhs) const { return data != rhs.data; }$/;"	f	struct:Skaia::SimpleSmallState
+operator ()	SkaiaAction.h	/^        size_t operator() (const Skaia::Action &a) const$/;"	f	struct:std::hash
 operator *	Skaia.h	/^        Position operator*(int factor) const$/;"	f	struct:Skaia::Position
 operator *=	Skaia.h	/^        Position& operator*=(int factor) { rank *= factor; file *= factor; }$/;"	f	struct:Skaia::Position
 operator +	Skaia.h	/^        Position operator+(const Position& rhs) const$/;"	f	struct:Skaia::Position
@@ -190,6 +196,12 @@ pieces_by_color_and_type	SkaiaState.h	/^            std::array<std::array<std::v
 place_piece	SkaiaState.cpp	/^    void State::place_piece(Piece* piece, const Position& pos)$/;"	f	class:Skaia::State
 player	ai.h	/^        Chess::Player* player;$/;"	m	class:Chess::AI
 players	game.h	/^        std::vector<Chess::Player*> players;$/;"	m	class:Chess::Game
+pondering_busy	ai.h	/^        std::atomic_flag pondering_busy;$/;"	m	class:Chess::AI
+pondering_depth	ai.h	/^        int pondering_depth;$/;"	m	class:Chess::AI
+pondering_minimax	SkaiaMM.cpp	/^    std::vector<std::pair<Action, MMReturn>> pondering_minimax(const State& cstate,$/;"	f	namespace:Skaia
+pondering_move	ai.h	/^        std::vector<std::pair<Skaia::Action, Skaia::MMReturn>> pondering_move;$/;"	m	class:Chess::AI
+pondering_stop	ai.h	/^        std::atomic<bool> pondering_stop;$/;"	m	class:Chess::AI
+pondering_thread	ai.h	/^        std::thread pondering_thread;$/;"	m	class:Chess::AI
 pos	SkaiaPiece.h	/^            Position pos;$/;"	m	class:Skaia::Piece
 possible_bishop_moves	SkaiaState_internal.cpp	/^    void State::possible_bishop_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
 possible_king_moves	SkaiaState_internal.cpp	/^    void State::possible_king_moves(const Piece* piece, std::vector<Action>& actions) const$/;"	f	class:Skaia::State
@@ -229,6 +241,7 @@ squares	SkaiaState.h	/^            std::array<Square, 8 * 8> squares;$/;"	m	clas
 start	ai.cpp	/^void Chess::AI::start()$/;"	f	class:Chess::AI
 state	ai.h	/^        Skaia::State state; \/\/ Store the board state between turns$/;"	m	class:Chess::AI
 states_evaluated	SkaiaMM.h	/^        int states_evaluated;$/;"	m	struct:Skaia::MMReturn
+std	SkaiaAction.h	/^namespace std$/;"	n
 taken	SkaiaBackAction.h	/^            Piece taken; \/\/ The previous state of the taken piece (if one was taken), otherwise it is the default-constructed Piece$/;"	m	class:Skaia::BackAction
 timeRemaining	player.h	/^        float timeRemaining;$/;"	m	class:Chess::Player
 to	SkaiaAction.h	/^            Position from, to;$/;"	m	class:Skaia::Action

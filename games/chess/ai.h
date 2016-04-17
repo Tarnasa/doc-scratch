@@ -21,6 +21,7 @@
 
 #include "SkaiaState.h"
 #include "SkaiaMM.h"
+#include "HistoryTable.h"
 
 /// <summary>
 /// This the header file for where you build your AI for the Chess game.
@@ -43,8 +44,7 @@ class Chess::AI : public Joueur::BaseAI
         std::vector<std::pair<Skaia::Action, Skaia::MMReturn>> pondering_move;
         int pondering_depth;
 
-        std::unordered_map<Skaia::Action, std::pair<int, int>> history_table;
-
+        HistoryTable history_table;
 
         /// <summary>
         /// This is a pointer to the Game object itself, it contains all the information about the current game

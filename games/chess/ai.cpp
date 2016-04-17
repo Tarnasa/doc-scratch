@@ -14,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Hearts Boxcars"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Diamonds Droog"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -82,6 +82,13 @@ void Chess::AI::ended(bool won, std::string reason)
 bool Chess::AI::runTurn()
 {
     // Here is where you'll want to code your AI.
+
+    // Shorthands so we don't get too verbose
+    using std::chrono::nanoseconds;
+    using std::chrono::milliseconds;
+    using std::chrono::seconds;
+    using std::chrono::duration_cast;
+
     std::cout << "begin" << std::endl; // TODO: Remove
     // Record time
     auto genesis = std::chrono::steady_clock::now();
@@ -89,7 +96,7 @@ bool Chess::AI::runTurn()
     // Print how much time since the end of our last turn
     if (state.turn > 1)
     {
-        std::chrono::duration<double> slumber = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - turn_end);
+        std::chrono::duration<double> slumber = duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - turn_end);
         std::cout << "Slept for " << slumber.count() << " seconds." << std::endl;
     }
 
@@ -145,12 +152,12 @@ bool Chess::AI::runTurn()
 
     // Find the difference in remaining time between players
     std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->otherPlayer->timeRemaining << std::endl;
-    auto player_time_difference = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->otherPlayer->timeRemaining)));
+    auto player_time_difference = duration_cast<milliseconds>(
+            nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->otherPlayer->timeRemaining)));
     std::cout << "Time to spend: " << player_time_difference.count() << std::endl;
 
     // Determine the depth we need to start search at
-    int depth = 2;
+    int depth = 4;
     if (state.turn <= 1) depth = 4;
 
     // Try to get result of pondering thread
@@ -167,7 +174,21 @@ bool Chess::AI::runTurn()
             {
                 ret = pair.second;
                 found_pondering_result = true;
-                depth = pondering_depth;
+                depth = pondering_depth - 1;
+                // TODO: Remove
+                // Make sure that pondering found same result as normal minimax
+                /*
+                auto actual = minimax(state, (state.turn % 2 ? Skaia::Black : Skaia::White),
+                        pondering_depth - 2, std::numeric_limits<int>::lowest(),
+                        std::numeric_limits<int>::max());
+                if (actual.action != ret.action || actual.heuristic != ret.heuristic)
+                {
+                    std::cerr << "Pondering result not same as normal minimax!" << std::endl;
+                    std::cerr << "actual: " << actual.action << " " << actual.heuristic << std::endl;
+                    std::cerr << "pondering: " << ret.action << " " << ret.heuristic << std::endl;
+                }
+                */
+                // TODO: Remove
                 break;
             }
         }
@@ -181,9 +202,8 @@ bool Chess::AI::runTurn()
         {
             std::cerr << "Failed to find result from pondering thread!" << std::endl;
         }
+        depth += 1;
     }
-
-    depth += 1;
 
     std::cout << "before thread" << std::endl;
     // Call minimax in a separate thread
@@ -222,19 +242,27 @@ bool Chess::AI::runTurn()
     std::cout << "after thread" << std::endl;
 
     // Wait slightly less than our opponent
-    auto time_to_spend = player_time_difference - std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - genesis);
+    auto time_to_spend = player_time_difference -
+        duration_cast<milliseconds>(std::chrono::steady_clock::now() - genesis);
+    time_to_spend -= milliseconds(300);
+    // But slightly more if we are losing
+    if (ret.heuristic < -1000) time_to_spend += milliseconds(600);
+    // And cap off our min and max time
+    if (time_to_spend < seconds(1)) time_to_spend = seconds(1);
+    if (time_to_spend > seconds(20)) time_to_spend = seconds(20);
+
     std::cout << "time_to_spend: " << time_to_spend.count() << std::endl;
     if (time_to_spend.count() > 0)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(time_to_spend));
+        std::this_thread::sleep_for(milliseconds(time_to_spend));
     }
     idmm_stop = true;
     while (idmm_busy.test_and_set());
 
     // Check time
-    std::chrono::duration<double> duration = std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
+    std::chrono::duration<double> duration = duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - genesis);
 
-    std::cout << "Depth: " << depth << std::endl;
+    std::cout << "Depth: " << (depth - 1) << std::endl;
     std::cout << "Took " << duration.count() << " seconds for " << ret.states_evaluated << " states" << std::endl;
     std::cout << "Heuristic " << ret.heuristic << " with action " << ret.action << std::endl;
         

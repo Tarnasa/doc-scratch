@@ -7,7 +7,7 @@ namespace Skaia
 {
     MMReturn minimax(const State& cstate, Color me, int depth_remaining, int lower, int upper)
     {
-        LOG("minimax");
+        LOG("minimax(" << depth_remaining << ", " << lower << ", " << upper << ")");
         // Cast away const-ness (it's ok, back_actions SHOULD return it to the original state)
         State& state = const_cast<State&>(cstate);
         
@@ -90,7 +90,7 @@ namespace Skaia
     MMReturn interruptable_minimax(const State& cstate, Color me, int depth_remaining,
             int lower, int upper, std::atomic<bool> &stop)
     {
-        LOG("interruptable_minimax");
+        LOG("interruptable_minimax(" << depth_remaining << ", " << lower << ", " << upper << ")");
         if (depth_remaining < 3)
         {
             // Revert back to uninterruptable if depth is small enough
@@ -198,8 +198,9 @@ namespace Skaia
             LOG("pondering_minimax: " << action);
             auto back_action = state.apply_action(action);
             bests.emplace_back(action, interruptable_minimax(state, me, depth_remaining - 1,
-                        std::numeric_limits<int>::lowest(), std::numeric_limits<int>::max(), stop));
-            std::cout << bests.back().second.heuristic << std::endl; // TODO: Remove
+                        lower, upper, stop));
+            std::cout << bests.back().second.heuristic << " "
+                << bests.back().second.action << std::endl; // TODO: Remove
             state.apply_back_action(back_action);
             if (stop) break;
         }

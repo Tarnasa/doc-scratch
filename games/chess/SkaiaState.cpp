@@ -67,7 +67,7 @@ namespace Skaia
 
     bool State::draw() const
     {
-        if (since_pawn_or_capture == 50) return true;
+        if (since_pawn_or_capture == 100) return true;
         if (history.size() == 8)
         {
             return
