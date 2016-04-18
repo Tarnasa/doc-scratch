@@ -472,6 +472,7 @@ namespace Skaia
 
         // Restore state variables
         since_pawn_or_capture = action.since_pawn_or_capture;
+        captured = action.captured;
         uint64_t null_history = 0;
         // Add old state
         if (action.old_action != null_history)
@@ -749,7 +750,8 @@ namespace Skaia
             check(squares == rhs.squares, "squares") &&
             check(cmp_ptr(double_moved_pawn, rhs.double_moved_pawn), "double") &&
             check(history == rhs.history, "history") &&
-            check(since_pawn_or_capture == rhs.since_pawn_or_capture, "since");
+            check(since_pawn_or_capture == rhs.since_pawn_or_capture, "since") &&
+            check(captured == rhs.captured, "capture");
     }
 
     bool State::Square::operator==(const Square& rhs) const
