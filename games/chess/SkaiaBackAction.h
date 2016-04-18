@@ -18,6 +18,7 @@ namespace Skaia
             uint64_t old_action; // The eighth-oldest action to be re-added to history, or 0 if there isn't enough history
             int double_moved_pawn_id; // -1 if there was no previously double moved pawn
             int since_pawn_or_capture;
+            bool captured;
     };
 }
 

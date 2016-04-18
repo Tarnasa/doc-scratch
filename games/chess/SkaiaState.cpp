@@ -9,7 +9,7 @@ namespace Skaia
 {
     State::State() : turn(0), pieces(), squares(),
         pieces_by_color_and_type(), double_moved_pawn(nullptr), history(8),
-        since_pawn_or_capture(0)/*, zobrist(13315146811210211749)*/
+        since_pawn_or_capture(0), captured(false)/*, zobrist(13315146811210211749)*/
     {
         // Generate pieces
         static const std::vector<Type> order = {Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook};
@@ -37,7 +37,7 @@ namespace Skaia
 
     State::State(const State& source) : turn(source.turn), pieces(source.pieces), squares(),
         pieces_by_color_and_type(), double_moved_pawn(nullptr), history(source.history),
-        since_pawn_or_capture(source.since_pawn_or_capture)
+        since_pawn_or_capture(source.since_pawn_or_capture), captured(source.captured)
     {
         auto make_pointer = [&, this](const Piece* piece) {
             return piece == nullptr ? nullptr : &(this->pieces[piece->id]);
@@ -82,17 +82,17 @@ namespace Skaia
 
     bool State::quiescent() const
     {
-        return !is_in_check(Black) && !is_in_check(White);
+        return !is_in_check(Black) && !is_in_check(White) && !captured;
     }
 
 
     void State::place_piece(Piece* piece, const Position& pos)
     {
         LOG("place_piece");
-        // Always assume that target position is empty
-        // Check for blocking other piece's lines
-        typedef std::pair<Piece*, Position> UpdatePair;
-        std::vector<UpdatePair> need_updating;
+        // Place piece at location
+        piece->pos = pos;
+        at(pos).piece = piece;
+        // Update possible moves and checks
         if (at(pos).checks.any())
         {
             auto& checks = at(pos).checks;
@@ -101,52 +101,45 @@ namespace Skaia
                 if (checks[i])
                 {
                     auto& attacker = pieces[i];
+                    // Update moves
+                    attacker.moves.clear();
+                    possible_piece_moves(&attacker, attacker.moves);
+                    // Update checks
                     switch (attacker.type)
                     {
                         case Bishop:
                         case Rook:
                         case Queen:
-                            check_ray(&attacker, attacker.pos.direction_to(pos), false);
-                            need_updating.emplace_back(&attacker, attacker.pos.direction_to(pos));
+                            // If the attacker is an enemy then keep his check on this square
+                            //  otherwise remove it
+                            checks[i] = attacker.color != piece->color;
+                            // Remove all checks beyond this point in the attacker's path
+                            auto delta = attacker.pos.direction_to(pos);
+                            Position new_pos = piece->pos;
+                            while (true)
+                            {
+                                new_pos += delta;
+                                if (!canTake(piece, new_pos)) break;
+                                at(new_pos).checks[i] = false;
+                                if (!empty(new_pos)) break;
+                            }
                             break;
                     }
                 }
             }
         }
-        // Place piece at location
-        piece->pos = pos;
-        at(pos).piece = piece;
-        // Update possible moves
-        if (at(pos).checks.any())
-        {
-            auto& checks = at(pos).checks;
-            // TODO: Optimize with CLZ instruction
-            for (int i = 0; i < checks.size(); ++i)
-            {
-                if (checks[i])
-                {
-                    auto& attacker = pieces[i];
-                    attacker.moves.clear();
-                    possible_piece_moves(&attacker, attacker.moves);
-                }
-            }
-        }
-        // Update sight lines and moves for other pieces
-        for (auto i : need_updating)
-        {
-            check_ray(i.first, i.second, true);
-            i.first->moves.clear();
-            possible_piece_moves(i.first, i.first->moves);
-        }
-        // Update nearby pawns
-        for (auto& pos : std::vector<Position>{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}})
+        // Update nearby pawns for double move
+        for (auto& pos : std::array<Position, 4>{{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}}})
         {
             Position new_pos = piece->pos + pos;
-            if (inside(new_pos) && at(new_pos).piece != nullptr)
+            if (inside(new_pos))
             {
-                Piece* piece = at(new_pos).piece;
-                piece->moves.clear();
-                possible_piece_moves(piece, piece->moves);
+                Piece *piece = at(new_pos).piece;
+                if (piece != nullptr && piece->type == Pawn)
+                {
+                    piece->moves.clear();
+                    possible_pawn_moves(piece, piece->moves);
+                }
             }
         }
         // Update sight lines and moves for this piece
@@ -164,15 +157,18 @@ namespace Skaia
 
         // Remove from board
         at(piece->pos).piece = nullptr;
-        // Update nearby pawns
-        for (auto& pos : std::vector<Position>{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}})
+        // Update nearby pawns for double move
+        for (auto& pos : std::array<Position, 4>{{{-2, 0}, {-1, 0}, {1, 0}, {2, 0}}})
         {
             Position new_pos = piece->pos + pos;
-            if (inside(new_pos) && at(new_pos).piece != nullptr)
+            if (inside(new_pos))
             {
-                Piece* piece = at(new_pos).piece;
-                piece->moves.clear();
-                possible_piece_moves(piece, piece->moves);
+                Piece *piece = at(new_pos).piece;
+                if (piece != nullptr && piece->type == Pawn)
+                {
+                    piece->moves.clear();
+                    possible_pawn_moves(piece, piece->moves);
+                }
             }
         }
         // Check for blocking other pieces
@@ -210,6 +206,7 @@ namespace Skaia
         auto& v = pieces_by_color_and_type[piece->color][piece->type];
         v.erase(std::find(v.begin(), v.end(), piece));
         since_pawn_or_capture = 0;
+        captured = true;
     }
 
     void State::move_piece(const Position& from, const Position& to)
@@ -228,11 +225,13 @@ namespace Skaia
         uint64_t old_action(history.size() == 8 ? history[0] : 0);
         int double_moved_id = double_moved_pawn == nullptr ? -1 : double_moved_pawn->id;
         BackAction back_action{action.promotion, Piece(*(at(action.from).piece)),
-            null_piece, old_action, double_moved_id, since_pawn_or_capture};
+            null_piece, old_action, double_moved_id, since_pawn_or_capture, captured};
 
         // Record this action so we can check for draws later
         history.push_back(at(action.from).piece->type << 8 | action.to.rank << 4 | action.to.file);
+
         since_pawn_or_capture += 1;
+        captured = false;
 
         // Remove moves to en-passant the previously double-moved pawn
         if (double_moved_pawn != nullptr)
@@ -529,6 +528,7 @@ namespace Skaia
 
         // Remove actions which would put the moving player into check
         std::vector<Action> safe_actions;
+        safe_actions.reserve(actions.size());
         std::remove_copy_if(actions.begin(), actions.end(), std::back_inserter(safe_actions),
                 [this](const Action& action){
                     LOG("generate_actions: lambda");
@@ -594,22 +594,24 @@ namespace Skaia
     
     int State::count_net_check_values(Color color) const
     {
-        // TODO: Cache all dis
-        static std::map<Type, int> protect_value = {
-            {Pawn, 1},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 5},
-            {Queen, 9},
-            {King, 0},
+        // OPTIMIZE: Cache all dis
+        static const std::array<int, 7> protect_value = {
+            0, // Buffer space
+            1, // Pawn
+            3, // Bishop
+            3, // Knight
+            5, // Rook
+            9, // Queen
+            0  // King
         };
-        static std::map<Type, int> check_value = {
-            {Pawn, 6},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 3},
-            {Queen, 2},
-            {King, 1},
+        static const std::array<int, 7> check_value = {
+            0, // Buffer space
+            6, // Pawn
+            3, // Bishop
+            3, // Knight
+            3, // Rook
+            2, // Queen
+            1  // King
         };
         int h = 0;
         for (auto& type : std::array<Type, 6>{{Pawn, Bishop, Knight, Rook, Queen, King}})

@@ -158,7 +158,7 @@ namespace Skaia
         Position new_pos(piece->pos + Position(direction, 0));
         if (empty(new_pos)) pawn_move_with_promotions(piece, new_pos, actions);
         // Move forward twice on first move
-        if (piece->pos.rank == (piece->color ? 1 : 6))
+        if (piece->special) // special==true when piece has never moved
         {
             new_pos = piece->pos + Position(direction * 2, 0);
             if (empty(piece->pos + Position(direction, 0)) && empty(new_pos)) actions.emplace_back(piece->pos, new_pos, Pawn);
@@ -233,6 +233,7 @@ namespace Skaia
             {
                 actions.emplace_back(piece->pos, piece->pos + Position(0, -2), King);
             }
+            // King-side castle
             else if (empty_and_unchecked(piece->pos + Position(0, 1)) &&
                     empty_and_unchecked(piece->pos + Position(0, 2)) &&
                     at(piece->pos + Position(0, 3)).piece->type == Rook &&
