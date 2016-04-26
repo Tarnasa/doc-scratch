@@ -278,7 +278,7 @@ namespace Skaia
         // Only the losing player wants a draw
         if (draw)
         {
-            h = 0;
+            h = -1000;
         }
         return h;
     }
