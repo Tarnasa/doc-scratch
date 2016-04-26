@@ -193,16 +193,13 @@ bool Chess::AI::runTurn()
 
     std::cout << "before thread" << std::endl;
     // Call minimax in a separate thread
-    std::cout << "1" << std::endl;
     idmm_stop = false;
-    std::cout << "2" << std::endl;
     idmm_busy.clear();
-    std::cout << "3" << std::endl;
     idmm_thread = std::thread([&] {
         Skaia::State state_copy = state;
         while (!idmm_stop)
         {
-            std::cout << "4" << std::endl;
+            std::cout << "idmm: start " << depth << std::endl;
             auto action = Skaia::interruptable_minimax(state_copy,
                     (state_copy.turn % 2 ? Skaia::Black : Skaia::White),
                     depth,
@@ -211,19 +208,15 @@ bool Chess::AI::runTurn()
                     std::numeric_limits<int>::max(),
                     history_table,
                     idmm_stop);
-            std::cout << "5" << std::endl;
             while (idmm_busy.test_and_set() && !idmm_stop);
-            std::cout << "6" << std::endl;
             if (idmm_stop)
             {
                 idmm_busy.clear();
                 break;
             }
-            std::cout << "7" << std::endl;
             ret = action;
-            std::cout << "8" << std::endl;
             idmm_busy.clear();
-            std::cout << "9" << std::endl;
+            std::cout << "idmm: stop " << depth << std::endl;
             depth += 1;
         }
     });
@@ -257,7 +250,7 @@ bool Chess::AI::runTurn()
     // Clean up the history table (check 10% of entries for expiration)
     std::cout << "History table size: " << history_table.scores.size() << std::endl;
     std::cout << "Number of buckets: " << history_table.scores.bucket_count() << std::endl;
-    history_table.decay(history_table.scores.size() / 10, state.turn - 20);
+    history_table.decay(history_table.scores.size() / 12, state.turn - 20);
     std::cout << "New History table size: " << history_table.scores.size() << std::endl;
 
     // Make move through framework
@@ -292,7 +285,7 @@ bool Chess::AI::runTurn()
         std::cout << "Joined idmm_thread" << std::endl;
         while (!pondering_stop)
         {
-            std::cout << "p1" << std::endl;
+            std::cout << "pondering: start " << pondering_depth << std::endl;
             auto new_pondering_move = Skaia::pondering_minimax(state_copy,
                     ((state_copy.turn + 1) % 2 ? Skaia::Black : Skaia::White),
                     pondering_depth,
@@ -301,19 +294,16 @@ bool Chess::AI::runTurn()
                     std::numeric_limits<int>::max(),
                     history_table,
                     pondering_stop);
-            std::cout << "p2" << std::endl;
             while (pondering_busy.test_and_set() && !pondering_stop);
-            std::cout << "p3" << std::endl;
             if (pondering_stop)
             {
                 pondering_busy.clear();
                 break;
             }
-            std::cout << "p4" << std::endl;
             pondering_move = new_pondering_move;
             pondering_depth += 1;
             pondering_busy.clear();
-            std::cout << "p5" << std::endl;
+            std::cout << "pondering: stop " << pondering_depth << std::endl;
         }
     });
 

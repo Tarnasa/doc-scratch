@@ -106,11 +106,6 @@ namespace Skaia
             //  would be considered.
             template<typename F> void ray_action(const Piece* piece, const Position& delta, F func)
             {
-                if (delta.rank == 0 && delta.file == 0)
-                {
-                    std::cerr << "No delta!" << std::endl;
-                    return;
-                }
                 Position new_pos = piece->pos;
                 while (true)
                 {
@@ -122,11 +117,6 @@ namespace Skaia
             }
             template<typename F> void ray_action_const(const Piece* piece, const Position& delta, F func) const
             {
-                if (delta.rank == 0 && delta.file == 0)
-                {
-                    std::cerr << "No delta!" << std::endl;
-                    return;
-                }
                 Position new_pos = piece->pos;
                 while (true)
                 {

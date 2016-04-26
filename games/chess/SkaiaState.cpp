@@ -67,7 +67,7 @@ namespace Skaia
 
     bool State::draw() const
     {
-        if (since_pawn_or_capture == 100) return true;
+        if (since_pawn_or_capture == 101) return true;
         if (history.size() == 8)
         {
             return
@@ -600,21 +600,23 @@ namespace Skaia
     int State::count_net_check_values(Color color) const
     {
         // TODO: Cache all dis
-        static std::map<Type, int> protect_value = {
-            {Pawn, 1},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 5},
-            {Queen, 9},
-            {King, 0},
+        static const std::array<int, 7> protect_value = {
+            0, // Buffer space
+            1, // Pawn
+            3, // Bishop
+            3, // Knight
+            5, // Rook
+            9, // Queen
+            0  // King
         };
-        static std::map<Type, int> check_value = {
-            {Pawn, 6},
-            {Bishop, 3},
-            {Knight, 3},
-            {Rook, 3},
-            {Queen, 2},
-            {King, 1},
+        static const std::array<int, 7> check_value = {
+            0, // Buffer space
+            6, // Pawn
+            3, // Bishop
+            3, // Knight
+            3, // Rook
+            2, // Queen
+            1  // King
         };
         int h = 0;
         for (auto& type : std::array<Type, 6>{{Pawn, Bishop, Knight, Rook, Queen, King}})

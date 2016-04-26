@@ -225,8 +225,6 @@ namespace Skaia
             auto back_action = state.apply_action(action);
             bests.emplace_back(action, interruptable_minimax(state, me, depth_remaining - 1,
                         quiescent_depth, lower, upper, ht, stop));
-            std::cout << bests.back().second.heuristic << " "
-                << bests.back().second.action << std::endl; // TODO: Remove
             state.apply_back_action(back_action);
             if (stop) break;
         }
@@ -267,7 +265,9 @@ namespace Skaia
         {
             if (state.is_in_check(current)) // Checkmate
             {
-                h = (current == me) ? -100000 : 100000;
+                h = (current == me) ? -1100000 : 1100000;
+                // Prefer winning NOW
+                h -= state.turn;
             }
             else
             {
