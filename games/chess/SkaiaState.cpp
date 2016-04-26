@@ -9,7 +9,7 @@ namespace Skaia
 {
     State::State() : turn(0), pieces(), squares(),
         pieces_by_color_and_type(), double_moved_pawn(nullptr), history(8),
-        since_pawn_or_capture(0)/*, zobrist(13315146811210211749)*/
+        since_pawn_or_capture(0), captured(false)/*, zobrist(13315146811210211749)*/
     {
         // Generate pieces
         static const std::vector<Type> order = {Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook};
@@ -37,7 +37,7 @@ namespace Skaia
 
     State::State(const State& source) : turn(source.turn), pieces(source.pieces), squares(),
         pieces_by_color_and_type(), double_moved_pawn(nullptr), history(source.history),
-        since_pawn_or_capture(source.since_pawn_or_capture)
+        since_pawn_or_capture(source.since_pawn_or_capture), captured(source.captured)
     {
         auto make_pointer = [&, this](const Piece* piece) {
             return piece == nullptr ? nullptr : &(this->pieces[piece->id]);
@@ -82,7 +82,7 @@ namespace Skaia
 
     bool State::quiescent() const
     {
-        return !is_in_check(Black) && !is_in_check(White);
+        return !is_in_check(Black) && !is_in_check(White) && !captured;
     }
 
 
@@ -210,6 +210,7 @@ namespace Skaia
         auto& v = pieces_by_color_and_type[piece->color][piece->type];
         v.erase(std::find(v.begin(), v.end(), piece));
         since_pawn_or_capture = 0;
+        captured = true;
     }
 
     void State::move_piece(const Position& from, const Position& to)
@@ -228,11 +229,14 @@ namespace Skaia
         uint64_t old_action(history.size() == 8 ? history[0] : 0);
         int double_moved_id = double_moved_pawn == nullptr ? -1 : double_moved_pawn->id;
         BackAction back_action{action.promotion, Piece(*(at(action.from).piece)),
-            null_piece, old_action, double_moved_id, since_pawn_or_capture};
+            null_piece, old_action, double_moved_id, since_pawn_or_capture, captured};
 
         // Record this action so we can check for draws later
-        history.push_back(at(action.from).piece->type << 8 | action.to.rank << 4 | action.to.file);
+        history.push_back(at(action.from).piece->type << 8 |
+                action.to.rank << 4 | action.to.file |
+                action.from.rank << 12 | action.from.file << 16);
         since_pawn_or_capture += 1;
+        captured = false;
 
         // Remove moves to en-passant the previously double-moved pawn
         if (double_moved_pawn != nullptr)
@@ -473,6 +477,7 @@ namespace Skaia
 
         // Restore state variables
         since_pawn_or_capture = action.since_pawn_or_capture;
+        captured = action.captured;
         uint64_t null_history = 0;
         // Add old state
         if (action.old_action != null_history)
@@ -666,6 +671,22 @@ namespace Skaia
         return h;
     }
 
+    int State::count_piece_moves_value(Color color) const
+    {
+        static const std::array<int, NumberOfTypes> score{{0, 1, 3, 5, 4, 4, 10}};
+        int h = 0;
+        int i = (color ? 16 : 0);
+        for (auto c = 0u; c < 16; ++c)
+        {
+            if (pieces[i].alive)
+            {
+                h += pieces[i].moves.size() * score[static_cast<size_t>(pieces[i].type)];
+            }
+            i += 1;
+        }
+        return h;
+    }
+
     SimpleSmallState State::to_simple() const
     {
         LOG("to_simple");
@@ -747,7 +768,8 @@ namespace Skaia
             check(squares == rhs.squares, "squares") &&
             check(cmp_ptr(double_moved_pawn, rhs.double_moved_pawn), "double") &&
             check(history == rhs.history, "history") &&
-            check(since_pawn_or_capture == rhs.since_pawn_or_capture, "since");
+            check(since_pawn_or_capture == rhs.since_pawn_or_capture, "since") &&
+            check(captured == rhs.captured, "captured");
     }
 
     bool State::Square::operator==(const Square& rhs) const

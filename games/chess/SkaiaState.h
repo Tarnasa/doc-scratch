@@ -49,6 +49,7 @@ namespace Skaia
             Piece* double_moved_pawn; // Points to the one pawn that is capturable by en-passant, or nullptr
             boost::circular_buffer<uint64_t> history; // For detecting draws by repeat
             int since_pawn_or_capture; // For detecting draws by no pawn move or piece captured
+            bool captured; // Whether a piece was captured on the last move.
             //Zobrist zobrist; // Hash board state
 
             // Default constructor initializes state to the beginning of a normal chess game
@@ -74,6 +75,7 @@ namespace Skaia
             int count_net_check_values(Color color) const;
             int count_pawn_advancement(Color color) const;
             int count_piece_moves(Color color) const;
+            int count_piece_moves_value(Color color) const;
 
             // Access a square
             const Square& at(int rank, int file) const;

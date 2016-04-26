@@ -259,7 +259,7 @@ namespace Skaia
             h += state.count_net_check_values(me) - state.count_net_check_values(!me);
 
             // Mobility
-            h += (state.count_piece_moves(me) - state.count_piece_moves(!me)) * 3;
+            h += (state.count_piece_moves_value(me) - state.count_piece_moves_value(!me)) * 1;
         }
 
         // Add dominating bonus for checkmate
