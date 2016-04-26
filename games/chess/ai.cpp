@@ -14,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Spades Slick"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "Thanks for playing"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>

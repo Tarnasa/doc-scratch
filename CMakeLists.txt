@@ -42,7 +42,7 @@ if(CPP11_OKAY)
     set_property(TARGET client PROPERTY CXX_STANDARD_REQUIRED ON)
 else()
     if(UNIX OR MINGW)
-        set_target_properties(client PROPERTIES COMPILE_FLAGS "-std=c++11")
+        set_target_properties(client PROPERTIES COMPILE_FLAGS "-std=c++11 -O3")
     endif(UNIX OR MINGW)
 endif()
 
