@@ -1,4 +1,4 @@
-// This is where you build your AI for the Checkers game.
+// This is where you build your AI for the Chess game.
 
 #include "ai.h"
 
@@ -14,7 +14,7 @@
 /// <returns>string of you AI's name.</returns>
 std::string Chess::AI::getName()
 {
-    return "Thanks for playing"; // REPLACE THIS WITH YOUR TEAM NAME!
+    return "The Laughing Man"; // REPLACE THIS WITH YOUR TEAM NAME!
 }
 
 /// <summary>
@@ -151,9 +151,9 @@ bool Chess::AI::runTurn()
     std::cout << "Time Remaining: " << this->player->timeRemaining << " ns" << std::endl;
 
     // Find the difference in remaining time between players
-    std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->otherPlayer->timeRemaining << std::endl;
+    std::cout << "Difference in player time: " << this->player->timeRemaining - this->player->opponent->timeRemaining << std::endl;
     auto player_time_difference = duration_cast<milliseconds>(
-            nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->otherPlayer->timeRemaining)));
+            nanoseconds(static_cast<int64_t>(this->player->timeRemaining - this->player->opponent->timeRemaining)));
     std::cout << "Time to spend: " << player_time_difference.count() << std::endl;
 
     // Determine the depth we need to start search at
